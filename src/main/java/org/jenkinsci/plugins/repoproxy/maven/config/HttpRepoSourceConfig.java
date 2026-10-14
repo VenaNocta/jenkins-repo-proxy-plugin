@@ -24,8 +24,8 @@ import java.util.UUID;
 
 import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
 import org.jenkinsci.plugins.artifact.lifecycle.config.GlobalRepositoryIndex;
-import org.jenkinsci.plugins.artifact.lifecycle.config.IdentifierUtils;
 import org.jenkinsci.plugins.artifact.lifecycle.maven.config.Maven2Repository;
+import org.jenkinsci.plugins.identifieddata.api.IdentifierUtils;
 import org.jenkinsci.plugins.repoproxy.config.BomSource;
 import org.jenkinsci.plugins.repoproxy.config.BomSourceProvider;
 import org.kohsuke.accmod.Restricted;

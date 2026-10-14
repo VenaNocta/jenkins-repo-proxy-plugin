@@ -15,8 +15,8 @@
  */
 package org.jenkinsci.plugins.repoproxy.config;
 
-import org.jenkinsci.plugins.artifact.lifecycle.config.IdentifierUtils;
-import org.jenkinsci.plugins.artifact.lifecycle.config.NamedRefUUID;
+import org.jenkinsci.plugins.identifieddata.api.IdentifierUtils;
+import org.jenkinsci.plugins.identifieddata.api.NamedRefUUID;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;

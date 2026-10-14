@@ -18,9 +18,9 @@ package org.jenkinsci.plugins.repoproxy.config;
 import java.io.Serializable;
 import java.util.UUID;
 
-import org.jenkinsci.plugins.artifact.lifecycle.config.IdentifiedByUUID;
-import org.jenkinsci.plugins.artifact.lifecycle.config.IdentifierUtils;
-import org.jenkinsci.plugins.artifact.lifecycle.config.ReferenceableByName;
+import org.jenkinsci.plugins.identifieddata.api.IdentifiedByUUID;
+import org.jenkinsci.plugins.identifieddata.api.IdentifierUtils;
+import org.jenkinsci.plugins.identifieddata.api.ReferenceableByName;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
