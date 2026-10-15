@@ -38,7 +38,8 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<root-dir>..</root-dir>
-		<hpi.bundledArtifacts>commons-codec,commons-collections4,commons-io,cyclonedx-core-java,itu,json-schema-validator,maven-repo-client-core,maven-repo-client-http,maven-repo-core,maven-repo-project-api,maven-repo-proxy-core,maven-repo-server-core,maven-repo-server-http,maven-repo-validation-cyclonedx,maven-repo-validation-pgp,netty-codec-compression,netty-codec-http,netty-codec-http2,netty-transport,packageurl-java,utils-common,utils-common-api</hpi.bundledArtifacts>
+		<hpi.bundledArtifacts>
+			commons-codec,commons-collections4,commons-io,cyclonedx-core-java,itu,json-schema-validator,maven-repo-client-core,maven-repo-client-http,maven-repo-core,maven-repo-project-api,maven-repo-proxy-core,maven-repo-server-core,maven-repo-server-http,maven-repo-validation-cyclonedx,maven-repo-validation-pgp,packageurl-java,utils-common,utils-common-api</hpi.bundledArtifacts>
 	</properties>
 
 	<dependencies>
@@ -96,15 +97,10 @@
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
 		</dependency>
+		<!-- CLIENT -->
 		<dependency>
 			<groupId>net.runeduniverse.lib.repo</groupId>
-			<artifactId>maven-repo-proxy-core</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-codec</groupId>
-					<artifactId>commons-codec</artifactId>
-				</exclusion>
-			</exclusions>
+			<artifactId>maven-repo-client-core</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>net.runeduniverse.lib.repo</groupId>
@@ -118,6 +114,25 @@
 					<groupId>org.apache.commons</groupId>
 					<artifactId>commons-lang3</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>io.netty</groupId>
+					<artifactId>netty-codec-http2</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.netty</groupId>
+					<artifactId>netty-transport</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- SERVER -->
+		<dependency>
+			<groupId>net.runeduniverse.lib.repo</groupId>
+			<artifactId>maven-repo-server-core</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>io.netty</groupId>
+					<artifactId>netty-transport</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
@@ -128,8 +143,28 @@
 					<groupId>commons-codec</groupId>
 					<artifactId>commons-codec</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>io.netty</groupId>
+					<artifactId>netty-codec-http2</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- PROXY -->
+		<dependency>
+			<groupId>net.runeduniverse.lib.repo</groupId>
+			<artifactId>maven-repo-proxy-core</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>commons-codec</groupId>
+					<artifactId>commons-codec</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.netty</groupId>
+					<artifactId>netty-transport</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- VALIDATOR -->
 		<dependency>
 			<groupId>net.runeduniverse.lib.repo</groupId>
 			<artifactId>maven-repo-validation-pgp</artifactId>
@@ -146,6 +181,14 @@
 					<groupId>org.bouncycastle</groupId>
 					<artifactId>bcpg-jdk18on</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>io.netty</groupId>
+					<artifactId>netty-codec-http2</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.netty</groupId>
+					<artifactId>netty-transport</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
@@ -158,15 +201,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- netty-transport-native has to be handled differently! -->
-		<!-- = out of scope of the prototype! -->
-		<!-- 
-		<dependency>
-			<groupId>io.netty</groupId>
-			<artifactId>netty-transport-native-unix-common</artifactId>
-			<version>${netty-version}</version>
-		</dependency>
-		-->
 
 		<!-- COMPILER -->
 		<dependency>

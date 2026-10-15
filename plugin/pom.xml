@@ -38,7 +38,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<root-dir>..</root-dir>
-		<hpi.bundledArtifacts>netty-handler</hpi.bundledArtifacts>
+		<hpi.bundledArtifacts></hpi.bundledArtifacts>
 	</properties>
 
 	<dependencies>
@@ -49,6 +49,10 @@
 		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>artifact-lifecycle</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.jenkins.plugins</groupId>
+			<artifactId>netty-api</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
@@ -88,19 +92,6 @@
 		</dependency>
 
 		<!-- non packaged dependencies -->
-		<dependency>
-			<groupId>io.netty</groupId>
-			<artifactId>netty-handler</artifactId>
-		</dependency>
-		<!-- netty-transport-native has to be handled differently! -->
-		<!-- = out of scope of the prototype! -->
-		<!-- 
-		<dependency>
-			<groupId>io.netty</groupId>
-			<artifactId>netty-transport-native-unix-common</artifactId>
-			<version>${netty-version}</version>
-		</dependency>
-		-->
 
 		<!-- COMPILER -->
 		<dependency>
