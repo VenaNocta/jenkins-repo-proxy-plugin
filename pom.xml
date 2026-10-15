@@ -27,14 +27,18 @@
 	</parent>
 
 	<groupId>org.jenkins-ci.plugins</groupId>
-	<artifactId>repo-proxy-plugin</artifactId>
+	<artifactId>repo-proxy-parent</artifactId>
 	<version>${revision}-v${changelist}</version>
-	<packaging>hpi</packaging>
+	<packaging>pom</packaging>
 
-	<name>Jenkins Repo-Proxy</name>
-	<description>Provides RepoProxy StepContext</description>
-	<url>https://github.com/RunedUniverse/jenkins-repo-proxy-plugin</url>
-	<inceptionYear>2026</inceptionYear>
+	<name>Repo-Proxy - Parent</name>
+	<url>https://github.com/VenaNocta/jenkins-repo-proxy-plugin</url>
+	<inceptionYear>2025</inceptionYear>
+
+	<modules>
+		<module>plugin</module>
+		<module>maven-proxy</module>
+	</modules>
 
 	<licenses>
 		<license>
@@ -60,19 +64,16 @@
 
 	<scm>
 		<url>
-			https://github.com/RunedUniverse/jenkins-repo-proxy-plugin
-		</url>
+			https://github.com/VenaNocta/jenkins-repo-proxy-plugin</url>
 		<connection>
-			scm:git:https://github.com/RunedUniverse/jenkins-repo-proxy-plugin.git
-		</connection>
+			scm:git:https://github.com/VenaNocta/jenkins-repo-proxy-plugin.git</connection>
 		<developerConnection>
-			scm:git:git@github.com:RunedUniverse/jenkins-repo-proxy-plugin.git
-		</developerConnection>
+			scm:git:git@github.com:VenaNocta/jenkins-repo-proxy-plugin.git</developerConnection>
 	</scm>
 	<issueManagement>
 		<system>GitHub Issues</system>
 		<url>
-			https://github.com/RunedUniverse/jenkins-repo-proxy-plugin/issues
+			https://github.com/VenaNocta/jenkins-repo-proxy-plugin/issues
 		</url>
 	</issueManagement>
 
@@ -97,7 +98,6 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<root-dir>${basedir}</root-dir>
-		<hpi.bundledArtifacts>bcprov-jdk18on,commons-codec,commons-collections4,commons-io,cyclonedx-core-java,itu,json-schema-validator,maven-repo-client-core,maven-repo-client-http,maven-repo-core,maven-repo-project-api,maven-repo-proxy-core,maven-repo-server-core,maven-repo-server-http,maven-repo-validation-cyclonedx,maven-repo-validation-pgp,netty-buffer,netty-codec-base,netty-codec-compression,netty-codec-http,netty-codec-http2,netty-common,netty-handler,netty-resolver,netty-transport,netty-transport-native-unix-common,packageurl-java,utils-common,utils-common-api</hpi.bundledArtifacts>
 		<!-- VERSIONS -->
 		<revision>1.0</revision>
 		<changelist>0</changelist>
@@ -124,166 +124,6 @@
 		<jenkins-test-harness.version>2519.v4ee63f85da_71</jenkins-test-harness.version>
 		-->
 	</properties>
-
-	<dependencies>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins</groupId>
-			<artifactId>identified-data-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins</groupId>
-			<artifactId>artifact-lifecycle</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins</groupId>
-			<artifactId>artifact-lifecycle-maven-api</artifactId>
-			<!-- <optional>true</optional> -->
-		</dependency>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins</groupId>
-			<artifactId>pgp-credentials</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins</groupId>
-			<artifactId>isolation-context-plugin</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins</groupId>
-			<artifactId>structs</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins.workflow</groupId>
-			<artifactId>workflow-job</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins</groupId>
-			<artifactId>credentials</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.jenkins.plugins</groupId>
-			<artifactId>commons-lang3-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins</groupId>
-			<artifactId>jackson2-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins.workflow</groupId>
-			<artifactId>workflow-scm-step</artifactId>
-		</dependency>
-
-		<!-- OPTIONAL -->
-		<dependency>
-			<groupId>org.jenkins-ci.plugins.workflow</groupId>
-			<artifactId>workflow-cps</artifactId>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins</groupId>
-			<artifactId>cloudbees-folder</artifactId>
-			<optional>true</optional>
-		</dependency>
-
-		<!-- non packaged dependencies -->
-		<dependency>
-			<groupId>net.runeduniverse.lib.utils</groupId>
-			<artifactId>utils-common</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>commons-codec</groupId>
-			<artifactId>commons-codec</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>net.runeduniverse.lib.repo</groupId>
-			<artifactId>maven-repo-proxy-core</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-codec</groupId>
-					<artifactId>commons-codec</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>net.runeduniverse.lib.repo</groupId>
-			<artifactId>maven-repo-client-http</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-codec</groupId>
-					<artifactId>commons-codec</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.apache.commons</groupId>
-					<artifactId>commons-lang3</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>net.runeduniverse.lib.repo</groupId>
-			<artifactId>maven-repo-server-http</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-codec</groupId>
-					<artifactId>commons-codec</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>net.runeduniverse.lib.repo</groupId>
-			<artifactId>maven-repo-validation-pgp</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-codec</groupId>
-					<artifactId>commons-codec</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>net.runeduniverse.lib.repo</groupId>
-			<artifactId>maven-repo-validation-cyclonedx</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-io</groupId>
-					<artifactId>commons-io</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<!-- netty-transport-native has to be handled differently! -->
-		<!-- = out of scope of the prototype! -->
-		<!-- 
-		<dependency>
-			<groupId>io.netty</groupId>
-			<artifactId>netty-transport-native-unix-common</artifactId>
-			<version>${netty-version}</version>
-		</dependency>
-		-->
-
-		<!-- COMPILER -->
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins.workflow</groupId>
-			<artifactId>workflow-durable-task-step</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<!-- TRYING -->
-		<dependency>
-			<groupId>org.jenkins-ci.plugins.workflow</groupId>
-			<artifactId>workflow-basic-steps</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.jenkins-ci.plugins</groupId>
-			<artifactId>git</artifactId>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
 
 	<dependencyManagement>
 		<dependencies>
@@ -316,6 +156,13 @@
 				<scope>import</scope>
 			</dependency>
 
+			<!-- non packaged dependencies -->
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-handler</artifactId>
+				<version>${netty-version}</version>
+			</dependency>
+
 			<!-- PLUGINS -->
 			<dependency>
 				<groupId>org.jenkins-ci.plugins</groupId>
@@ -341,6 +188,18 @@
 				<groupId>org.jenkins-ci.plugins</groupId>
 				<artifactId>isolation-context-plugin</artifactId>
 				<version>${isolation-context-version}</version>
+			</dependency>
+
+			<!-- MODULES -->
+			<dependency>
+				<groupId>org.jenkins-ci.plugins</groupId>
+				<artifactId>repo-proxy</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.jenkins-ci.plugins</groupId>
+				<artifactId>repo-proxy-maven</artifactId>
+				<version>${project.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -476,9 +335,6 @@
 
 	<build>
 		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-			</resource>
 			<resource>
 				<directory>${basedir}</directory>
 				<targetPath>META-INF</targetPath>
