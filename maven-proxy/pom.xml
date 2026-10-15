@@ -38,8 +38,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<root-dir>..</root-dir>
-		<hpi.bundledArtifacts>
-			bcprov-jdk18on,commons-codec,commons-collections4,commons-io,cyclonedx-core-java,itu,json-schema-validator,maven-repo-client-core,maven-repo-client-http,maven-repo-core,maven-repo-project-api,maven-repo-proxy-core,maven-repo-server-core,maven-repo-server-http,maven-repo-validation-cyclonedx,maven-repo-validation-pgp,netty-buffer,netty-codec-base,netty-codec-compression,netty-codec-http,netty-codec-http2,netty-common,netty-handler,netty-resolver,netty-transport,netty-transport-native-unix-common,packageurl-java,utils-common,utils-common-api</hpi.bundledArtifacts>
+		<hpi.bundledArtifacts>commons-codec,commons-collections4,commons-io,cyclonedx-core-java,itu,json-schema-validator,maven-repo-client-core,maven-repo-client-http,maven-repo-core,maven-repo-project-api,maven-repo-proxy-core,maven-repo-server-core,maven-repo-server-http,maven-repo-validation-cyclonedx,maven-repo-validation-pgp,netty-codec-compression,netty-codec-http,netty-codec-http2,netty-transport,packageurl-java,utils-common,utils-common-api</hpi.bundledArtifacts>
 	</properties>
 
 	<dependencies>
@@ -138,6 +137,14 @@
 				<exclusion>
 					<groupId>commons-codec</groupId>
 					<artifactId>commons-codec</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.bouncycastle</groupId>
+					<artifactId>bcprov-jdk18on</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.bouncycastle</groupId>
+					<artifactId>bcpg-jdk18on</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
