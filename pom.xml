@@ -104,10 +104,10 @@
 		<!-- ARTIFACT VERSIONS - BOMs -->
 		<jenkins-tools-bom-version>2.580.x</jenkins-tools-bom-version>
 		<jenkins-tools-bom-patch>7169.vb_32a_cfd93fa_6</jenkins-tools-bom-patch>
-		<runeduniverse-utils-bom-version>2.0.1</runeduniverse-utils-bom-version>
 		<maven-repo-bom-version>0.1.0</maven-repo-bom-version>
 		<!-- ARTIFACT VERSIONS -->
 		<jenkins.version>2.568.3</jenkins.version>
+		<runeduniverse-utils-api.version>1-2.0.1-999999</runeduniverse-utils-api.version>
 		<identified-data-api-version>1.0-v0</identified-data-api-version>
 		<lifecycle-version>1.0-v0</lifecycle-version>
 		<pgp-credentials-version>1.0-v0</pgp-credentials-version>
@@ -146,18 +146,14 @@
 				<scope>import</scope>
 			</dependency>
 
-			<!-- UTILS -->
-			<dependency>
-				<groupId>net.runeduniverse.lib.utils</groupId>
-				<artifactId>utils-bom</artifactId>
-				<version>${runeduniverse-utils-bom-version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-
 			<!-- non packaged dependencies -->
 
 			<!-- PLUGINS -->
+			<dependency>
+				<groupId>org.jenkins-ci.plugins</groupId>
+				<artifactId>runeduniverse-utils-api</artifactId>
+				<version>${runeduniverse-utils-api.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>org.jenkins-ci.plugins</groupId>
 				<artifactId>identified-data-api</artifactId>

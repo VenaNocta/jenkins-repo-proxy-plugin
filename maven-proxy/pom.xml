@@ -39,10 +39,14 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<root-dir>..</root-dir>
 		<hpi.bundledArtifacts>
-			commons-codec,commons-collections4,commons-io,cyclonedx-core-java,itu,json-schema-validator,maven-repo-client-core,maven-repo-client-http,maven-repo-core,maven-repo-project-api,maven-repo-proxy-core,maven-repo-server-core,maven-repo-server-http,maven-repo-validation-cyclonedx,maven-repo-validation-pgp,packageurl-java,utils-common,utils-common-api</hpi.bundledArtifacts>
+			commons-codec,commons-collections4,commons-io,cyclonedx-core-java,itu,json-schema-validator,maven-repo-client-core,maven-repo-client-http,maven-repo-core,maven-repo-project-api,maven-repo-proxy-core,maven-repo-server-core,maven-repo-server-http,maven-repo-validation-cyclonedx,maven-repo-validation-pgp,packageurl-java</hpi.bundledArtifacts>
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.jenkins-ci.plugins</groupId>
+			<artifactId>runeduniverse-utils-api</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.jenkins-ci.plugins</groupId>
 			<artifactId>identified-data-api</artifactId>
@@ -85,10 +89,6 @@
 		</dependency>
 
 		<!-- non packaged dependencies -->
-		<dependency>
-			<groupId>net.runeduniverse.lib.utils</groupId>
-			<artifactId>utils-common</artifactId>
-		</dependency>
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
