@@ -25,6 +25,7 @@ import java.util.UUID;
 import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
 import org.jenkinsci.plugins.artifact.lifecycle.config.GlobalRepositoryIndex;
 import org.jenkinsci.plugins.artifact.lifecycle.maven.config.Maven2Repository;
+import org.jenkinsci.plugins.identifieddata.api.IdentifierUtils;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import com.cloudbees.plugins.credentials.common.IdCredentials;
@@ -89,12 +90,7 @@ public abstract class RepoSourceConfig implements Describable<RepoSourceConfig>,
 
 	@DataBoundSetter
 	public void setRepoId(String value) {
-		try {
-			value = Util.fixEmptyAndTrim(value);
-			this.repoId = value == null ? null : UUID.fromString(value);
-		} catch (IllegalArgumentException e) {
-			this.repoId = null;
-		}
+		this.repoId = IdentifierUtils.fixInvalidUUID(value);
 	}
 
 	public abstract RepositorySource buildSource(Path repoPath, Map<UUID, Maven2Repository> repoMap,
