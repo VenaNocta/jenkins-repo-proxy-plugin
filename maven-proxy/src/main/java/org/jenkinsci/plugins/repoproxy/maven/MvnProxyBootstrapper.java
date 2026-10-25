@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
+import org.jenkinsci.plugins.artifact.lifecycle.config.GlobalRepositoryIndex;
 import org.jenkinsci.plugins.artifact.lifecycle.maven.config.Maven2Repository;
 import org.jenkinsci.plugins.isolationctx.IsolationContext.NetLink;
 import org.jenkinsci.plugins.isolationctx.dto.TrafficMap;
@@ -130,8 +131,12 @@ public class MvnProxyBootstrapper extends AProxyBootstrapper implements Action {
 		final Map<UUID, Maven2Repository> repoMap2 = repoMap.values()
 				.stream()
 				.filter(Objects::nonNull)
-				.map(repo -> repo instanceof Maven2Repository ? repo : repo.adapter(Set.of(Maven2Repository.class)))
-				.filter(Maven2Repository::isSupported)
+				.map(repo -> GlobalRepositoryIndex.adaptToTypeAsStream(Maven2Repository.class)
+						.apply(repo)
+						.filter(Maven2Repository::isSupported)
+						.findFirst()
+						.orElse(null))
+				.filter(Objects::nonNull)
 				.collect(Collectors.toMap(ArtifactRepository::getUuid, r -> (Maven2Repository) r));
 
 		final FlowNode node = context.get(FlowNode.class);

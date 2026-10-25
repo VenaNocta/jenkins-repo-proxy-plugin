@@ -69,7 +69,7 @@ public class HttpRepoSourceConfig extends RepoSourceConfig {
 	public Set<String> getCredentialIds() {
 		final Maven2Repository repo = getRepo();
 		final String credId;
-		if (repo == null || (credId = repo.getCredentialId()) == null)
+		if (repo == null || (credId = repo.getDownloadCredentialId()) == null)
 			return super.getCredentialIds();
 		return Set.of(credId);
 	}
@@ -93,7 +93,7 @@ public class HttpRepoSourceConfig extends RepoSourceConfig {
 		final HttpSource source = new HttpSource(this.key, fixRepoUri(repo.getMaven2Uri()), repoPath.resolve(this.key),
 				this.maxRedirects, this.maxRetries);
 		// set repo credentials
-		if (credentialMap.get(repo.getCredentialId()) instanceof StandardUsernamePasswordCredentials cred) {
+		if (credentialMap.get(repo.getDownloadCredentialId()) instanceof StandardUsernamePasswordCredentials cred) {
 			source.setRepoCredentials(new DefaultBasicRepoCredentials(cred));
 		}
 		return source;
@@ -157,9 +157,10 @@ public class HttpRepoSourceConfig extends RepoSourceConfig {
 		}
 
 		public ListBoxModel doFillRepoIdItems(@AncestorInPath final Item item, @QueryParameter final String repoId) {
-			return IdentifierUtils.allValuesAsListBox(GlobalRepositoryIndex.get()
-					.getRepos(Descriptor::isSupported, Set.of(Maven2Repository.class)), repoId,
-					ArtifactRepository::getName, false);
+			return IdentifierUtils.allValuesAsListBox( //
+					GlobalRepositoryIndex.get()
+							.getRepos(Descriptor::isSupported, Maven2Repository.class),
+					repoId, ArtifactRepository::getName, false);
 		}
 
 		public static boolean isSupported(final ArtifactRepository repository) {
