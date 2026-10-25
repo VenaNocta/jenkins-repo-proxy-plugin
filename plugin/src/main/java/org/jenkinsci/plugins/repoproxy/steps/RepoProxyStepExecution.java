@@ -51,6 +51,7 @@ import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
+import org.jenkinsci.plugins.workflow.steps.SynchronousResumeNotSupportedException;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
@@ -311,6 +312,15 @@ public class RepoProxyStepExecution extends StepExecution {
 		// cleanup
 		this.cacheFolder.deleteRecursive();
 		this.cacheBomFolder.deleteRecursive();
+	}
+
+	@Override
+	public void onResume() {
+		if (this.bodyExec.isDone())
+			return;
+		// TODO in the future try to reconnect the Channels to the remote Computer!
+		final StepContext context = getContext();
+		context.onFailure(new SynchronousResumeNotSupportedException(context));
 	}
 
 	private static class BlockCallback extends BodyExecutionCallback {
