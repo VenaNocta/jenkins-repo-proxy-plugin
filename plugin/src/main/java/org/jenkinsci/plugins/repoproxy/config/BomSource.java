@@ -17,6 +17,7 @@ package org.jenkinsci.plugins.repoproxy.config;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Comparator;
 import java.util.UUID;
 
 import org.jenkinsci.plugins.identifieddata.api.IdentifiedByUUID;
@@ -34,6 +35,11 @@ import hudson.model.TaskListener;
 public abstract class BomSource implements Describable<BomSource>, IdentifiedByUUID, Serializable {
 
 	private static final long serialVersionUID = 1L;
+
+	public static final Comparator<BomSource> COMPARE_BY_NAME = //
+			new IdentifierUtils.NameComparator<BomSource>(BomSource::getName);
+	public static final Comparator<BomSource> COMPARE_BY_NAME_WITH_COMMENTS = //
+			new IdentifierUtils.NameComparatorWithComments<BomSource>(BomSource::getName);
 
 	@NonNull
 	protected final UUID uuid;

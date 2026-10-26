@@ -60,7 +60,7 @@ public class GlobalBomIndexConfiguration extends GlobalConfiguration {
 		super.load();
 		this.sourceMap.clear();
 		this.sources.stream()
-				.forEachOrdered(t -> this.sourceMap.put(t.getUuid(), t));
+				.forEach(t -> this.sourceMap.put(t.getUuid(), t));
 	}
 
 	public BomSource getSourceById(final UUID uuid) {
@@ -83,7 +83,10 @@ public class GlobalBomIndexConfiguration extends GlobalConfiguration {
 
 	// used by jelly & JCasC
 	public List<BomSource> getSources() {
-		return new ArrayList<BomSource>(this.sourceMap.values());
+		return this.sourceMap.values()
+				.stream()
+				.sorted(BomSource.COMPARE_BY_NAME_WITH_COMMENTS)
+				.collect(Collectors.toCollection(ArrayList::new));
 	}
 
 	@DataBoundSetter

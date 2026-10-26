@@ -33,6 +33,8 @@ import org.jenkinsci.plugins.artifact.lifecycle.ui.GlobalArtifactLifecycleConfig
 import org.jenkinsci.plugins.identifieddata.api.IdentifiedByUUID;
 import org.jenkinsci.plugins.identifieddata.api.IdentifierUtils;
 import org.jenkinsci.plugins.identifieddata.api.NameResolver;
+import org.jenkinsci.plugins.identifieddata.api.NamedRefUUID;
+import org.jenkinsci.plugins.identifieddata.api.ReferenceableByName;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest2;
 
@@ -63,7 +65,7 @@ public class RepoProxyConfiguration extends GlobalConfiguration {
 		super.load();
 		this.proxyMap.clear();
 		this.configs.stream()
-				.forEachOrdered(t -> this.proxyMap.put(t.getUuid(), t));
+				.forEach(t -> this.proxyMap.put(t.getUuid(), t));
 	}
 
 	public ProxyConfig getConfigById(final UUID id) {
@@ -76,13 +78,19 @@ public class RepoProxyConfiguration extends GlobalConfiguration {
 
 	// used by jelly & JCasC
 	public List<ProxyConfig> getConfigs() {
-		return new ArrayList<ProxyConfig>(this.proxyMap.values());
+		return this.proxyMap.values()
+				.stream()
+				.sorted(ReferenceableByName.COMPARE_BY_NAME_WITH_COMMENTS)
+				.collect(Collectors.toCollection(ArrayList::new));
 	}
 
 	// used by jelly
 	public List<ProxyConfig> getConfigs(final Item context) {
 		// TODO actually check the owner Item!
-		return new ArrayList<>(this.proxyMap.values());
+		return this.proxyMap.values()
+				.stream()
+				.sorted(ReferenceableByName.COMPARE_BY_NAME_WITH_COMMENTS)
+				.collect(Collectors.toCollection(ArrayList::new));
 	}
 
 	@DataBoundSetter
