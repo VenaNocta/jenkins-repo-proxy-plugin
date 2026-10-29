@@ -21,12 +21,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
 import org.jenkinsci.plugins.isolationctx.IsolationContext.NetLink;
-import org.jenkinsci.plugins.repoproxy.config.BomSourceCache;
+import org.jenkinsci.plugins.repoproxy.dto.BomCacheData;
+import org.jenkinsci.plugins.repoproxy.dto.CredentialsData;
+import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
-
-import com.cloudbees.plugins.credentials.common.IdCredentials;
 
 import hudson.model.Action;
 import hudson.model.TaskListener;
@@ -34,20 +33,50 @@ import jenkins.agents.ControllerToAgentFileCallable;
 
 public interface ProxyBootstrapper {
 
-	public Set<UUID> getRequiredBoms();
+	public default Set<UUID> getRequiredRepos() {
+		return Set.of();
+	}
 
-	public Set<UUID> getRequiredRepos();
+	public default Set<String> getRequiredCredentials() {
+		return Set.of();
+	}
 
-	public Set<String> getRequiredCredentials();
+	public default Set<UUID> getRequiredBoms() {
+		return Set.of();
+	}
 
 	public ControllerToAgentFileCallable<UUID> serverStartCallable(NetLink link, //
-			StepContext context, Map<String, String> proxyEnv, //
-			Map<UUID, BomSourceCache> bomCacheMap, Map<UUID, ArtifactRepository> repoMap,
-			Map<String, IdCredentials> credentialMap, //
+			StepContext context, Map<String, String> proxyEnv, RemoteInitData remoteInitData, //
 			TaskListener listener) throws IOException, InterruptedException;
 
 	public void receiveCallback(String refKey, Serializable data);
 
 	public Set<Action> results();
 
+	// for the sake of minimizing the amount of data transferred
+	// - exclude all entries incompatible with this Proxy
+	public default void reduceData(final RemoteInitData data) {
+		reduceRepositoryData(data);
+		if (data instanceof CredentialsData data0) {
+			reduceCredentialData(data0);
+		}
+		if (data instanceof BomCacheData data0) {
+			reduceCachedBomSources(data0);
+		}
+	}
+
+	public default void reduceRepositoryData(final RemoteInitData data) {
+		final Set<UUID> ids = getRequiredRepos();
+		data.retainRepositories(e -> ids.contains(e.getUuid()));
+	}
+
+	public default void reduceCredentialData(final CredentialsData data) {
+		final Set<String> ids = getRequiredCredentials();
+		data.retainCredentials(e -> ids.contains(e.getId()));
+	}
+
+	public default void reduceCachedBomSources(final BomCacheData data) {
+		final Set<UUID> ids = getRequiredBoms();
+		data.retainCachedBomSources(e -> ids.contains(e.sourceId()));
+	}
 }

@@ -29,6 +29,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
+
 import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
 import org.jenkinsci.plugins.artifact.lifecycle.config.GlobalRepositoryIndex;
 import org.jenkinsci.plugins.isolationctx.IsolationContext;
@@ -40,9 +44,13 @@ import org.jenkinsci.plugins.repoproxy.ProxyProvider;
 import org.jenkinsci.plugins.repoproxy.config.ProxyConfig;
 import org.jenkinsci.plugins.repoproxy.config.ProxyConfigDescriptor;
 import org.jenkinsci.plugins.repoproxy.config.RepoProxyConfiguration;
+import org.jenkinsci.plugins.repoproxy.config.SunSslContextFactory;
+import org.jenkinsci.plugins.repoproxy.dto.DefaultRemoteInitData;
+import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.jenkinsci.plugins.repoproxy.config.BomSourceCache;
 import org.jenkinsci.plugins.repoproxy.config.BomSourceProvider;
 import org.jenkinsci.plugins.repoproxy.netty.AgentNettyStopCallable;
+import org.jenkinsci.plugins.repoproxy.netty.SslContextFactory;
 import org.jenkinsci.plugins.workflow.actions.WorkspaceAction;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.steps.BodyExecution;
@@ -63,6 +71,10 @@ import hudson.Launcher;
 import hudson.model.Action;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import io.netty.handler.ssl.DelegatingSslContext;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
 import jenkins.agents.ControllerToAgentFileCallable;
 import jenkins.model.CauseOfInterruption;
 import net.runeduniverse.lib.utils.net.api.IpAddress;
@@ -216,15 +228,10 @@ public class RepoProxyStepExecution extends StepExecution {
 		}
 
 		// preload data
-		final Map<UUID, BomSourceCache> bomCacheMap = new LinkedHashMap<>();
-		final Map<UUID, ArtifactRepository> repoMap = new LinkedHashMap<>();
-		final Map<String, IdCredentials> credMap = new LinkedHashMap<>();
+		final DefaultRemoteInitData initData = new DefaultRemoteInitData();
 		{
-			final Launcher nodeBasedLauncher = this.cacheBomFolder.createLauncher(listener);
-			for (UUID uuid : bomIds) {
-				bomCacheMap.put(uuid, BomSourceProvider.findSourceById(run, uuid)
-						.buildCache(run, nodeBasedLauncher, this.cacheBomFolder.child(uuid.toString()), listener));
-			}
+			final Map<UUID, ArtifactRepository> repoMap = initData.getRepositoryMap();
+			// RemoteInitData
 			for (UUID uuid : repoIds) {
 				final ArtifactRepository repo = GlobalRepositoryIndex.get()
 						.getRepoById(uuid);
@@ -232,12 +239,23 @@ public class RepoProxyStepExecution extends StepExecution {
 					continue;
 				repoMap.put(uuid, repo);
 			}
+			// TODO move ssl factory to config!
+			initData.setSslContextFactory(new SunSslContextFactory());
+			// -- CredentialsData
+			final Map<String, IdCredentials> credMap = initData.getCredentialMap();
 			for (String credId : credIds) {
 				final IdCredentials cred = CredentialsProvider.findCredentialById(credId, IdCredentials.class, run);
 				if (cred == null)
 					continue;
 				CredentialsProvider.track(run, cred);
 				credMap.put(credId, cred);
+			}
+			// -- BomCacheData
+			final Map<UUID, BomSourceCache> bomCacheMap = initData.getBomCache();
+			final Launcher nodeBasedLauncher = this.cacheBomFolder.createLauncher(listener);
+			for (UUID uuid : bomIds) {
+				bomCacheMap.put(uuid, BomSourceProvider.findSourceById(run, uuid)
+						.buildCache(run, nodeBasedLauncher, this.cacheBomFolder.child(uuid.toString()), listener));
 			}
 		}
 
@@ -247,11 +265,15 @@ public class RepoProxyStepExecution extends StepExecution {
 			do {
 				cacheRef = UUID.randomUUID();
 			} while (this.activeNettyHandleCacheRefMap.containsValue(cacheRef));
+			// prepare data
+			final RemoteInitData remoteInitData = initData.copy();
+			bootstrap.reduceData(remoteInitData);
 			// create new cachePath for bootstrap in context and call it
-			final ControllerToAgentFileCallable<UUID> callable = //
-					bootstrap.serverStartCallable(link, context, proxyEnv, bomCacheMap, repoMap, credMap, listener);
 			final FilePath dir = this.cacheFolder.child(cacheRef.toString());
 			dir.mkdirs();
+			// actually stat server
+			final ControllerToAgentFileCallable<UUID> callable = //
+					bootstrap.serverStartCallable(link, context, proxyEnv, remoteInitData, listener);
 			this.activeNettyHandleCacheRefMap.put(dir.act(callable), cacheRef);
 		}
 	}

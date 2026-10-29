@@ -107,7 +107,7 @@
 		<maven-repo-bom-version>0.1.0</maven-repo-bom-version>
 		<!-- ARTIFACT VERSIONS -->
 		<jenkins.version>2.568.3</jenkins.version>
-		<runeduniverse-utils-api.version>1-2.0.1-999999</runeduniverse-utils-api.version>
+		<runeduniverse-utils-api.version>1-2.0.2-999999</runeduniverse-utils-api.version>
 		<identified-data-api-version>1.0-v0</identified-data-api-version>
 		<lifecycle-version>1.0-v0</lifecycle-version>
 		<pgp-credentials-version>1.0-v0</pgp-credentials-version>

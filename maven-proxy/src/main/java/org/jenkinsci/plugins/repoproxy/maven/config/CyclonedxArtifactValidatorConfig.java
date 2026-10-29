@@ -26,6 +26,7 @@ import java.util.function.Predicate;
 import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.jenkinsci.plugins.repoproxy.maven.CyclonedxValidator;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -96,8 +97,9 @@ public class CyclonedxArtifactValidatorConfig extends ACyclonedxValidatorConfig 
 		this.enableKeyserverMit = enableKeyserverMit;
 	}
 
-	public PublicKeyIndex getPublicKeyIndex() {
+	public PublicKeyIndex buildPublicKeyIndex(final RemoteInitData data) {
 		final PublicKeyIndex index = new PublicKeyIndex(3, 5);
+		index.setSslContext(data.getContextForClient());
 		if (this.enableKeyserverOpenPgp)
 			PublicKeyIndex.addKeyserverOpenPGP(index);
 		if (this.enableKeyserverUbuntu)
@@ -108,7 +110,7 @@ public class CyclonedxArtifactValidatorConfig extends ACyclonedxValidatorConfig 
 	}
 
 	@Override
-	public ArtifactValidator buildArtifactValidator(final Map<UUID, Path> bomPaths,
+	public ArtifactValidator buildArtifactValidator(final Map<UUID, Path> bomPaths, final RemoteInitData data,
 			final Consumer<Serializable> callback) throws IOException, InterruptedException {
 		Predicate<Component> filter = buildFilter();
 
@@ -121,7 +123,7 @@ public class CyclonedxArtifactValidatorConfig extends ACyclonedxValidatorConfig 
 				continue;
 			componentIndex.addBom(bom, filter);
 		}
-		return new CyclonedxValidator(getPublicKeyIndex(), componentIndex, callback)
+		return new CyclonedxValidator(buildPublicKeyIndex(data), componentIndex, callback)
 				.setSkipMissing(this.skipMissingArtifacts)
 				.setIgnorePom(this.skipMissingPomArtifacts);
 	}

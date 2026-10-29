@@ -23,6 +23,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
+
 import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import net.runeduniverse.lib.repo.maven.api.ArtifactValidator;
@@ -48,10 +50,10 @@ public abstract class ValidatorConfig implements Describable<ValidatorConfig>, S
 		return config != null && config.isValid();
 	}
 
-	public abstract MetadataValidator buildMetadataValidator(Map<UUID, Path> bomPaths, Consumer<Serializable> callback)
-			throws IOException, InterruptedException;
+	public abstract MetadataValidator buildMetadataValidator(Map<UUID, Path> bomPaths, RemoteInitData data,
+			Consumer<Serializable> callback) throws IOException, InterruptedException;
 
-	public abstract ArtifactValidator buildArtifactValidator(Map<UUID, Path> bomPaths, Consumer<Serializable> callback)
-			throws IOException, InterruptedException;
+	public abstract ArtifactValidator buildArtifactValidator(Map<UUID, Path> bomPaths, RemoteInitData data,
+			Consumer<Serializable> callback) throws IOException, InterruptedException;
 
 }

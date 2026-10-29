@@ -30,20 +30,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
-import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
-import org.jenkinsci.plugins.artifact.lifecycle.config.GlobalRepositoryIndex;
 import org.jenkinsci.plugins.artifact.lifecycle.maven.config.Maven2Repository;
 import org.jenkinsci.plugins.isolationctx.IsolationContext.NetLink;
 import org.jenkinsci.plugins.isolationctx.dto.TrafficMap;
 import org.jenkinsci.plugins.isolationctx.dto.TrafficMap.Protocol;
 import org.jenkinsci.plugins.repoproxy.AProxyBootstrapper;
-import org.jenkinsci.plugins.repoproxy.config.BomSourceCache;
+import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.jenkinsci.plugins.repoproxy.maven.config.MvnProxyConfig;
 import org.jenkinsci.plugins.repoproxy.steps.TrackedArtifactsAction;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
-
-import com.cloudbees.plugins.credentials.common.IdCredentials;
 
 import hudson.model.Action;
 import hudson.model.TaskListener;
@@ -119,29 +115,25 @@ public class MvnProxyBootstrapper extends AProxyBootstrapper implements Action {
 	}
 
 	@Override
+	public void reduceRepositoryData(final RemoteInitData data) {
+		final Set<UUID> ids = getRequiredRepos();
+		data.convertRepositories(Maven2Repository.class,
+				e -> ids.contains(e.getUuid()) && Maven2Repository.isSupported(e));
+	}
+
+	@Override
 	public ControllerToAgentFileCallable<UUID> serverStartCallable(final NetLink link, //
-			final StepContext context, final Map<String, String> proxyEnv, final Map<UUID, BomSourceCache> bomCacheMap,
-			final Map<UUID, ArtifactRepository> repoMap, final Map<String, IdCredentials> credentialMap,
+			final StepContext context, final Map<String, String> proxyEnv, final RemoteInitData data,
 			final TaskListener listener) throws IOException, InterruptedException {
 
 		final Set<InetAddress> addressSet = this.ipSet.stream()
 				.map(ip -> ip.toInetAddress(null))
 				.filter(Objects::nonNull)
 				.collect(Collectors.toSet());
-		final Map<UUID, Maven2Repository> repoMap2 = repoMap.values()
-				.stream()
-				.filter(Objects::nonNull)
-				.map(repo -> GlobalRepositoryIndex.adaptToTypeAsStream(Maven2Repository.class)
-						.apply(repo)
-						.filter(Maven2Repository::isSupported)
-						.findFirst()
-						.orElse(null))
-				.filter(Objects::nonNull)
-				.collect(Collectors.toMap(ArtifactRepository::getUuid, r -> (Maven2Repository) r));
 
 		final FlowNode node = context.get(FlowNode.class);
 		final MvnNettyStartCallable callable = new MvnNettyStartCallable(//
-				node.getId(), this.instConfigs, bomCacheMap, repoMap2, credentialMap, addressSet, this.port);
+				node.getId(), this.instConfigs, data, addressSet, this.port);
 
 		updateEnv(this.instConfigs.keySet(), this.ipSet, this.port, proxyEnv, "MVN");
 

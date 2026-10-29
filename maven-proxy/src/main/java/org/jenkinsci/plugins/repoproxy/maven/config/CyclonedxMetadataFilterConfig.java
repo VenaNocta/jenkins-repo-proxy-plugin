@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.kohsuke.stapler.DataBoundConstructor;
 import hudson.Extension;
 import net.runeduniverse.lib.repo.maven.api.MetadataValidator;
@@ -42,7 +43,7 @@ public class CyclonedxMetadataFilterConfig extends ACyclonedxValidatorConfig {
 	}
 
 	@Override
-	public MetadataValidator buildMetadataValidator(final Map<UUID, Path> bomPaths,
+	public MetadataValidator buildMetadataValidator(final Map<UUID, Path> bomPaths, final RemoteInitData data,
 			final Consumer<Serializable> callback) throws IOException, InterruptedException {
 		Predicate<Component> filter = buildFilter();
 		if (filter == null)

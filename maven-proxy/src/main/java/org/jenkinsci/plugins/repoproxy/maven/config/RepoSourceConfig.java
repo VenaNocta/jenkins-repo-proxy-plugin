@@ -26,9 +26,8 @@ import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
 import org.jenkinsci.plugins.artifact.lifecycle.config.GlobalRepositoryIndex;
 import org.jenkinsci.plugins.artifact.lifecycle.maven.config.Maven2Repository;
 import org.jenkinsci.plugins.identifieddata.api.IdentifierUtils;
+import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.kohsuke.stapler.DataBoundSetter;
-
-import com.cloudbees.plugins.credentials.common.IdCredentials;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -94,7 +93,7 @@ public abstract class RepoSourceConfig implements Describable<RepoSourceConfig>,
 	}
 
 	public abstract RepositorySource buildSource(Path repoPath, Map<UUID, Maven2Repository> repoMap,
-			Map<String, IdCredentials> credentialMap);
+			final RemoteInitData data);
 
 	@Override
 	public RepoSourceConfigDescriptor getDescriptor() {

@@ -24,8 +24,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
 import org.jenkinsci.plugins.artifact.lifecycle.maven.config.Maven2Repository;
 import org.jenkinsci.plugins.repoproxy.config.BomSourceCache;
+import org.jenkinsci.plugins.repoproxy.dto.BomCacheData;
+import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.jenkinsci.plugins.repoproxy.maven.config.MvnProxyConfig;
 import org.jenkinsci.plugins.repoproxy.netty.AgentNettyRegistry;
 import org.jenkinsci.plugins.repoproxy.netty.AgentNettyRegistry.ServerHandle;
@@ -35,13 +38,12 @@ import org.jenkinsci.plugins.repoproxy.steps.ProxyCallbackCallable;
 import org.jenkinsci.plugins.repoproxy.steps.ProxyCallbackData;
 import org.jenkinsci.plugins.repoproxy.steps.StopStepCallable;
 
-import com.cloudbees.plugins.credentials.common.IdCredentials;
-
 import hudson.remoting.VirtualChannel;
 
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import io.netty.channel.group.ChannelGroup;
 import net.runeduniverse.lib.repo.maven.data.DefaultFileTypeIndex;
@@ -56,20 +58,15 @@ public class MvnNettyStartCallable extends AgentNettyStartCallable {
 	private static final long serialVersionUID = 1L;
 
 	protected final Map<String, MvnProxyConfig> instanceConfigs;
-	protected final Map<UUID, BomSourceCache> bomCacheMap;
-	protected final Map<UUID, Maven2Repository> repoMap;
-	protected final Map<String, IdCredentials> credentialMap;
+	protected final RemoteInitData data;
 	protected final Set<InetAddress> addressSet;
 	protected final int port;
 
 	public MvnNettyStartCallable(final String flowNodeId, final Map<String, MvnProxyConfig> instanceConfigs,
-			final Map<UUID, BomSourceCache> bomCacheMap, final Map<UUID, Maven2Repository> repoMap,
-			final Map<String, IdCredentials> credentialMap, final Set<InetAddress> addressSet, final int port) {
+			final RemoteInitData data, final Set<InetAddress> addressSet, final int port) {
 		super(flowNodeId);
 		this.instanceConfigs = instanceConfigs;
-		this.bomCacheMap = bomCacheMap;
-		this.repoMap = repoMap;
-		this.credentialMap = credentialMap;
+		this.data = data;
 		this.addressSet = addressSet;
 		this.port = port;
 	}
@@ -77,6 +74,8 @@ public class MvnNettyStartCallable extends AgentNettyStartCallable {
 	@Override
 	protected void attachServerChannel(final UUID handleId, final File cacheFolder, final ChannelGroup channelGroup)
 			throws IOException, InterruptedException {
+		preloadRemoteCaches();
+
 		final ProxyServer server = new ProxyServer(new DefaultFileTypeIndex(), HttpRepoServerInitializer::new);
 		final Path cachePath = cacheFolder.toPath();
 
@@ -107,7 +106,13 @@ public class MvnNettyStartCallable extends AgentNettyStartCallable {
 				});
 	}
 
-	public boolean sendCallback(final VirtualChannel channel, final String refId, final Serializable data) {
+	protected void preloadRemoteCaches() throws IOException, InterruptedException {
+		// ensure the errors are thrown here and not during netty init!
+		this.data.initContextForClient();
+		this.data.initContextForServer();
+	}
+
+	protected boolean sendCallback(final VirtualChannel channel, final String refId, final Serializable data) {
 		try {
 			if (channel != null)
 				channel.callAsync(new ProxyCallbackCallable(this.flowNodeId, refId, data));
@@ -118,7 +123,7 @@ public class MvnNettyStartCallable extends AgentNettyStartCallable {
 		}
 	}
 
-	public boolean killPipeline(final VirtualChannel channel, final ArtifactException ex) {
+	protected boolean killPipeline(final VirtualChannel channel, final ArtifactException ex) {
 		try {
 			if (channel != null)
 				channel.callAsync(new StopStepCallable(this.flowNodeId,
@@ -133,6 +138,7 @@ public class MvnNettyStartCallable extends AgentNettyStartCallable {
 	protected void configure(final ProxyServer server, final Path cachePath, final Consumer<Serializable> callback)
 			throws IOException, InterruptedException {
 		final Map<UUID, Path> bomCacheMap = resolveBomCacheMap();
+		final Map<UUID, Maven2Repository> repoMap = resolveRepoMap();
 		for (Entry<String, MvnProxyConfig> entry : this.instanceConfigs.entrySet()) {
 			final String refId = entry.getKey();
 			final MvnProxyConfig config = entry.getValue();
@@ -142,7 +148,7 @@ public class MvnNettyStartCallable extends AgentNettyStartCallable {
 
 			final Path repoPath = cachePath.resolve(entry.getKey());
 			instance.sources()
-					.putAll(config.buildSourceMap(repoPath, bomCacheMap, this.repoMap, this.credentialMap, data -> {
+					.putAll(config.buildSourceMap(repoPath, bomCacheMap, repoMap, this.data, data -> {
 						if (data instanceof ProxyCallbackData)
 							callback.accept(data);
 						else
@@ -155,13 +161,23 @@ public class MvnNettyStartCallable extends AgentNettyStartCallable {
 
 	protected Map<UUID, Path> resolveBomCacheMap() throws IOException, InterruptedException {
 		final Map<UUID, Path> map = new LinkedHashMap<>();
-		for (Entry<UUID, BomSourceCache> entry : this.bomCacheMap.entrySet()) {
-			final UUID uuid = entry.getKey();
-			final BomSourceCache cache = entry.getValue();
-			if (uuid == null || cache == null)
-				continue;
-			map.put(uuid, cache.toPath());
-		}
+		if (this.data instanceof BomCacheData data)
+			for (Entry<UUID, BomSourceCache> entry : data.getBomCache()
+					.entrySet()) {
+				final UUID uuid = entry.getKey();
+				final BomSourceCache cache = entry.getValue();
+				if (uuid == null || cache == null)
+					continue;
+				map.put(uuid, cache.toPath());
+			}
 		return map;
+	}
+
+	protected Map<UUID, Maven2Repository> resolveRepoMap() throws IOException, InterruptedException {
+		return this.data.getRepositoryMap()
+				.values()
+				.stream()
+				.filter(Maven2Repository::isSupported)
+				.collect(Collectors.toMap(ArtifactRepository::getUuid, r -> (Maven2Repository) r));
 	}
 }

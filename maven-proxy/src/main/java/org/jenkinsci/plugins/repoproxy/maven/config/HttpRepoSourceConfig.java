@@ -26,6 +26,8 @@ import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
 import org.jenkinsci.plugins.artifact.lifecycle.config.GlobalRepositoryIndex;
 import org.jenkinsci.plugins.artifact.lifecycle.maven.config.Maven2Repository;
 import org.jenkinsci.plugins.identifieddata.api.IdentifierUtils;
+import org.jenkinsci.plugins.repoproxy.dto.CredentialsData;
+import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.AncestorInPath;
@@ -34,7 +36,6 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 
-import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 
 import hudson.Extension;
@@ -86,14 +87,18 @@ public class HttpRepoSourceConfig extends RepoSourceConfig {
 
 	@Override
 	public RepositorySource buildSource(final Path repoPath, final Map<UUID, Maven2Repository> repoMap,
-			final Map<String, IdCredentials> credentialMap) {
+			final RemoteInitData data) {
 		final Maven2Repository repo = repoMap.get(this.repoId);
 		if (!Descriptor.isSupported(repo))
 			return null;
 		final HttpSource source = new HttpSource(this.key, fixRepoUri(repo.getMaven2Uri()), repoPath.resolve(this.key),
 				this.maxRedirects, this.maxRetries);
+
+		// set SslContext
+		source.setSslContext(data.getContextForClient());
 		// set repo credentials
-		if (credentialMap.get(repo.getDownloadCredentialId()) instanceof StandardUsernamePasswordCredentials cred) {
+		if (data instanceof CredentialsData data0 && data0
+				.getCredential(repo.getDownloadCredentialId()) instanceof StandardUsernamePasswordCredentials cred) {
 			source.setRepoCredentials(new DefaultBasicRepoCredentials(cred));
 		}
 		return source;

@@ -37,11 +37,10 @@ import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.artifact.lifecycle.maven.config.Maven2Repository;
 import org.jenkinsci.plugins.repoproxy.config.ProxyConfig;
 import org.jenkinsci.plugins.repoproxy.config.ProxyConfigDescriptor;
+import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.jenkinsci.plugins.repoproxy.maven.ArtifactRequestTracker;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-
-import com.cloudbees.plugins.credentials.common.IdCredentials;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -147,16 +146,16 @@ public class MvnProxyConfig extends ProxyConfig {
 	}
 
 	public Map<String, RepositorySource> buildSourceMap(final Path repoPath, final Map<UUID, Path> bomCacheMap,
-			final Map<UUID, Maven2Repository> repoMap, final Map<String, IdCredentials> credentialMap,
-			final Consumer<Serializable> callback) throws IOException, InterruptedException {
+			final Map<UUID, Maven2Repository> repoMap, final RemoteInitData data, final Consumer<Serializable> callback)
+			throws IOException, InterruptedException {
 		final List<MetadataValidator> metadataValidators = new LinkedList<>();
 		final LinkedList<ArtifactValidator> artifactValidators = new LinkedList<>();
 		// aggregate validators
 		for (ValidatorConfig config : this.validators) {
 			if (!ValidatorConfig.checkValid(config))
 				continue;
-			final MetadataValidator metadataValidator = config.buildMetadataValidator(bomCacheMap, callback);
-			final ArtifactValidator artifactValidator = config.buildArtifactValidator(bomCacheMap, callback);
+			final MetadataValidator metadataValidator = config.buildMetadataValidator(bomCacheMap, data, callback);
+			final ArtifactValidator artifactValidator = config.buildArtifactValidator(bomCacheMap, data, callback);
 
 			if (metadataValidator != null)
 				metadataValidators.add(metadataValidator);
@@ -169,7 +168,7 @@ public class MvnProxyConfig extends ProxyConfig {
 		return this.sourceMap.values()
 				.stream()
 				.map(c -> {
-					final RepositorySource source = c.buildSource(repoPath, repoMap, credentialMap);
+					final RepositorySource source = c.buildSource(repoPath, repoMap, data);
 					if (source == null)
 						return null;
 					metadataValidators.stream()

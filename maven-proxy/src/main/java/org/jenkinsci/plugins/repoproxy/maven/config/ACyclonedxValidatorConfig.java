@@ -50,6 +50,7 @@ import org.jenkinsci.plugins.identifieddata.api.RefUUID;
 import org.jenkinsci.plugins.repoproxy.config.BomSource;
 import org.jenkinsci.plugins.repoproxy.config.BomSourceProvider;
 import org.jenkinsci.plugins.repoproxy.config.SimpleFileVisitor;
+import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.AncestorInPath;
@@ -152,13 +153,13 @@ public abstract class ACyclonedxValidatorConfig extends ValidatorConfig {
 	}
 
 	@Override
-	public MetadataValidator buildMetadataValidator(final Map<UUID, Path> bomPaths,
+	public MetadataValidator buildMetadataValidator(final Map<UUID, Path> bomPaths, final RemoteInitData data,
 			final Consumer<Serializable> callback) throws IOException, InterruptedException {
 		return null;
 	}
 
 	@Override
-	public ArtifactValidator buildArtifactValidator(final Map<UUID, Path> bomPaths,
+	public ArtifactValidator buildArtifactValidator(final Map<UUID, Path> bomPaths, final RemoteInitData data,
 			final Consumer<Serializable> callback) throws IOException, InterruptedException {
 		return null;
 	}

@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
@@ -53,13 +54,13 @@ public class DefaultPomArtifactValidatorConfig extends ValidatorConfig {
 	}
 
 	@Override
-	public MetadataValidator buildMetadataValidator(final Map<UUID, Path> bomPaths,
+	public MetadataValidator buildMetadataValidator(final Map<UUID, Path> bomPaths, final RemoteInitData data,
 			final Consumer<Serializable> callback) throws IOException, InterruptedException {
 		return null;
 	}
 
 	@Override
-	public ArtifactValidator buildArtifactValidator(final Map<UUID, Path> bomPaths,
+	public ArtifactValidator buildArtifactValidator(final Map<UUID, Path> bomPaths, final RemoteInitData data,
 			final Consumer<Serializable> stepCallback) throws IOException, InterruptedException {
 		return new ArtifactValidator() {
 			@Override
