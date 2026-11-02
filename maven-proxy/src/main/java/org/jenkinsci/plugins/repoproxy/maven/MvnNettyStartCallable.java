@@ -31,14 +31,12 @@ import org.jenkinsci.plugins.repoproxy.dto.BomCacheData;
 import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.jenkinsci.plugins.repoproxy.maven.config.MvnProxyConfig;
 import org.jenkinsci.plugins.repoproxy.netty.AgentNettyRegistry;
-import org.jenkinsci.plugins.repoproxy.netty.AgentNettyRegistry.ServerHandle;
 import org.jenkinsci.plugins.repoproxy.netty.AgentNettyStartCallable;
+import org.jenkinsci.plugins.repoproxy.netty.NettyServerHandle;
 import org.jenkinsci.plugins.repoproxy.steps.ArtifactValidationInterruption;
 import org.jenkinsci.plugins.repoproxy.steps.ProxyCallbackCallable;
 import org.jenkinsci.plugins.repoproxy.steps.ProxyCallbackData;
 import org.jenkinsci.plugins.repoproxy.steps.StopStepCallable;
-
-import hudson.remoting.VirtualChannel;
 
 import java.util.Set;
 import java.util.UUID;
@@ -80,8 +78,7 @@ public class MvnNettyStartCallable extends AgentNettyStartCallable {
 		final Path cachePath = cacheFolder.toPath();
 
 		configure(server, cachePath, data -> {
-			final ServerHandle handle = AgentNettyRegistry.get(handleId);
-			final VirtualChannel channel = handle == null ? null : handle.getJenkinsChannel();
+			final NettyServerHandle handle = AgentNettyRegistry.get(handleId);
 			String refId = null;
 
 			if (data instanceof ProxyCallbackData pData) {
@@ -89,9 +86,9 @@ public class MvnNettyStartCallable extends AgentNettyStartCallable {
 				data = pData.getData();
 			}
 
-			sendCallback(channel, refId, data);
+			sendCallback(handle, refId, data);
 			if (data instanceof ArtifactException ex) {
-				killPipeline(channel, ex);
+				killPipeline(handle, ex);
 			}
 		});
 
@@ -112,27 +109,15 @@ public class MvnNettyStartCallable extends AgentNettyStartCallable {
 		this.data.initContextForServer();
 	}
 
-	protected boolean sendCallback(final VirtualChannel channel, final String refId, final Serializable data) {
-		try {
-			if (channel != null)
-				channel.callAsync(new ProxyCallbackCallable(this.flowNodeId, refId, data));
-			return true;
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
+	protected void sendCallback(final NettyServerHandle handle, final String refId, final Serializable data) {
+		// DEBUG: System.err.println("sent ProxyCallbackData
+		// {refKey=" + refId + ", data={ " + data + " }}");
+		handle.sendCallback(new ProxyCallbackCallable(this.flowNodeId, refId, data));
 	}
 
-	protected boolean killPipeline(final VirtualChannel channel, final ArtifactException ex) {
-		try {
-			if (channel != null)
-				channel.callAsync(new StopStepCallable(this.flowNodeId,
-						new ArtifactValidationInterruption(ex.getMessage()).setPURL(ex.getPURL())));
-			return true;
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
+	protected void killPipeline(final NettyServerHandle handle, final ArtifactException ex) {
+		handle.sendCallback(new StopStepCallable(this.flowNodeId,
+				new ArtifactValidationInterruption(ex.getMessage()).setPURL(ex.getPURL())));
 	}
 
 	protected void configure(final ProxyServer server, final Path cachePath, final Consumer<Serializable> callback)

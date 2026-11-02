@@ -30,21 +30,21 @@ import io.netty.channel.group.ChannelGroupFuture;
 
 public class AgentNettyRegistry {
 
-	protected static final Map<UUID, ServerHandle> SERVERS = new ConcurrentHashMap<>();
+	protected static final Map<UUID, NettyServerHandle> SERVERS = new ConcurrentHashMap<>();
 
-	public static synchronized ServerHandle register(final VirtualChannel ch, final String flowNodeId,
+	public static synchronized NettyServerHandle register(final VirtualChannel ch, final String flowNodeId,
 			final ChannelGroup group) {
 		UUID id;
 		do {
 			id = UUID.randomUUID();
 		} while (SERVERS.containsKey(id));
 
-		final ServerHandle handle = new ServerHandle(id, ch, flowNodeId, group);
+		final NettyServerHandle handle = new NettyServerHandle(id, ch, flowNodeId, group);
 		SERVERS.put(id, handle);
 		return handle;
 	}
 
-	public static ServerHandle get(final UUID uuid) {
+	public static NettyServerHandle get(final UUID uuid) {
 		return SERVERS.get(uuid);
 	}
 
@@ -52,7 +52,7 @@ public class AgentNettyRegistry {
 		final List<ChannelGroupFuture> futures = new ArrayList<>();
 		// signal all servers to shutdown
 		for (UUID uuid : uuids) {
-			final ServerHandle handle = SERVERS.remove(uuid);
+			final NettyServerHandle handle = SERVERS.remove(uuid);
 			if (handle == null)
 				continue;
 			futures.add(handle.getChannelGroup()
@@ -63,40 +63,8 @@ public class AgentNettyRegistry {
 			future.await(60, TimeUnit.MINUTES);
 	}
 
-	public static Stream<ServerHandle> stream() {
+	public static Stream<NettyServerHandle> stream() {
 		return SERVERS.values()
 				.stream();
-	}
-
-	public static class ServerHandle {
-
-		protected final UUID id;
-		protected final VirtualChannel jenkinsChannel;
-		protected final String flowNodeId;
-		protected final ChannelGroup channelGroup;
-
-		protected ServerHandle(final UUID id, final VirtualChannel ch, final String flowNodeId,
-				final ChannelGroup group) {
-			this.id = id;
-			this.jenkinsChannel = ch;
-			this.flowNodeId = flowNodeId;
-			this.channelGroup = group;
-		}
-
-		public UUID getId() {
-			return this.id;
-		}
-
-		public VirtualChannel getJenkinsChannel() {
-			return this.jenkinsChannel;
-		}
-
-		public String getFlowNodeId() {
-			return this.flowNodeId;
-		}
-
-		public ChannelGroup getChannelGroup() {
-			return this.channelGroup;
-		}
 	}
 }

@@ -1,0 +1,2 @@
+^net[.]runeduniverse[.]lib[.]repo[.]maven[.]error[.].*
+org.jenkinsci.plugins.repoproxy.maven.ArtifactRequestTracker$Data

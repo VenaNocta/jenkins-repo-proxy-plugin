@@ -1,0 +1,4 @@
+org.jenkinsci.plugins.repoproxy.steps.ProxyCallbackCallable
+org.jenkinsci.plugins.repoproxy.steps.ProxyCallbackData
+org.jenkinsci.plugins.repoproxy.steps.StopStepCallable
+org.jenkinsci.plugins.repoproxy.steps.ArtifactValidationInterruption

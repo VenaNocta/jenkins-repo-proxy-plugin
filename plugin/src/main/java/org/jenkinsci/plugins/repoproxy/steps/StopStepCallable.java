@@ -15,10 +15,11 @@
  */
 package org.jenkinsci.plugins.repoproxy.steps;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jenkinsci.plugins.repoproxy.AgentToControllerCallable;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
@@ -48,9 +49,8 @@ public class StopStepCallable implements AgentToControllerCallable<Void, Runtime
 
 	@Override
 	public Void call() throws RuntimeException {
-		final CompletableFuture<Void> done = new CompletableFuture<>();
-
-		StepExecution.acceptAll(exec -> {
+		final AtomicBoolean delivered = new AtomicBoolean(false);
+		final Future<?> search = StepExecution.acceptAll(exec -> {
 			try {
 				final String id = exec.getContext()
 						.get(FlowNode.class)
@@ -59,17 +59,32 @@ public class StopStepCallable implements AgentToControllerCallable<Void, Runtime
 				if (StopStepCallable.this.flowNodeId.equals(id)) {
 					exec.stop(new FlowInterruptedException(//
 							StopStepCallable.this.result, true, StopStepCallable.this.cause));
-					done.complete(null);
+					delivered.set(true);
 				}
-
-			} catch (Exception ignore) {
+			} catch (Exception e) {
+				System.err.println("WARNING : StopStepCallable >>>");
+				e.printStackTrace(System.err);
+				if (e instanceof RuntimeException ex)
+					throw ex;
+				throw new RuntimeException(e);
 			}
 		});
-
+		// validate the search
 		try {
-			done.get(10, TimeUnit.SECONDS);
+			search.get(10, TimeUnit.SECONDS);
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
-			throw new IllegalStateException("StepExecution not found for node " + this.flowNodeId);
+			System.err.println("WARNING : StopStepCallable >>>");
+			e.printStackTrace(System.err);
+			final Throwable t = e instanceof ExecutionException ex ? ex.getCause() : e;
+			throw new RuntimeException("Failed to locate StepExecution of FlowNode=" + this.flowNodeId, t);
+		}
+		// validate the lookup result
+		if (delivered.get() == false) {
+			System.err.println(
+					"WARNING : ProxyCallbackCallable >>> Failed to deliver Callback to StepExecution of FlowNode="
+							+ this.flowNodeId);
+			throw new IllegalStateException(
+					"Failed to deliver Callback to StepExecution of FlowNode=" + this.flowNodeId);
 		}
 		return null;
 	}

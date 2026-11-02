@@ -19,8 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.jenkinsci.plugins.repoproxy.netty.AgentNettyRegistry.ServerHandle;
-
+import hudson.remoting.Channel;
 import hudson.remoting.VirtualChannel;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
@@ -46,10 +45,12 @@ public abstract class AgentNettyStartCallable implements ControllerToAgentFileCa
 
 	@Override
 	public UUID invoke(final File cacheFolder, final VirtualChannel channel) throws IOException, InterruptedException {
+		// NOTE: The channel may be null, usually on remote agents!
+		final VirtualChannel callbackChannel = channel != null ? channel : Channel.current();
 		final ChannelGroup group = newChannelGroup();
 		if (group == null)
 			return null;
-		final ServerHandle handle = AgentNettyRegistry.register(channel, this.flowNodeId, group);
+		final NettyServerHandle handle = AgentNettyRegistry.register(callbackChannel, this.flowNodeId, group);
 		attachServerChannel(handle.getId(), cacheFolder, group);
 		return handle.getId();
 	}

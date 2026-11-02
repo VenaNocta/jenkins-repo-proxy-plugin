@@ -123,5 +123,18 @@
 				<directory>src/main/resources</directory>
 			</resource>
 		</resources>
+		<plugins>
+			<plugin>
+				<groupId>org.jenkins-ci.tools</groupId>
+				<artifactId>maven-hpi-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifestEntries>
+							<Jenkins-ClassFilter-Whitelisted>true</Jenkins-ClassFilter-Whitelisted>
+						</manifestEntries>
+					</archive>
+				</configuration>
+			</plugin>
+		</plugins>
 	</build>
 </project>

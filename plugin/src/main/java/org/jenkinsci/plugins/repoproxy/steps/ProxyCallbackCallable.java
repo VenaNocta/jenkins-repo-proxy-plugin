@@ -16,10 +16,11 @@
 package org.jenkinsci.plugins.repoproxy.steps;
 
 import java.io.Serializable;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jenkinsci.plugins.repoproxy.AgentToControllerCallable;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
@@ -50,29 +51,44 @@ public class ProxyCallbackCallable implements AgentToControllerCallable<Void, Ru
 
 	@Override
 	public Void call() throws RuntimeException {
-		final CompletableFuture<Void> done = new CompletableFuture<>();
-
-		StepExecution.acceptAll(exec -> {
+		// DEBUG: System.err.println("delivering ProxyCallbackData
+		// {refKey=" + refKey + ", data={ " + data + " }}");
+		final AtomicBoolean delivered = new AtomicBoolean(false);
+		final Future<?> search = StepExecution.acceptAll(exec -> {
 			if (exec instanceof RepoProxyStepExecution proxyExec) {
 				try {
-					final String id = exec.getContext()
+					final String id = proxyExec.getContext()
 							.get(FlowNode.class)
 							.getId();
-
 					if (ProxyCallbackCallable.this.flowNodeId.equals(id)) {
 						proxyExec.receiveCallback(ProxyCallbackCallable.this.refKey, ProxyCallbackCallable.this.data);
-						done.complete(null);
+						delivered.set(true);
 					}
-
-				} catch (Exception ignore) {
+				} catch (Exception e) {
+					System.err.println("WARNING : ProxyCallbackCallable >>>");
+					e.printStackTrace(System.err);
+					if (e instanceof RuntimeException ex)
+						throw ex;
+					throw new RuntimeException(e);
 				}
 			}
 		});
-
+		// validate the search
 		try {
-			done.get(this.timeout, this.unit);
+			search.get(this.timeout, this.unit);
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
-			throw new IllegalStateException("StepExecution not found for node " + this.flowNodeId);
+			System.err.println("WARNING : ProxyCallbackCallable >>>");
+			e.printStackTrace(System.err);
+			final Throwable t = e instanceof ExecutionException ex ? ex.getCause() : e;
+			throw new RuntimeException("Failed to locate StepExecution of FlowNode=" + this.flowNodeId, t);
+		}
+		// validate the lookup result
+		if (delivered.get() == false) {
+			System.err.println(
+					"WARNING : ProxyCallbackCallable >>> Failed to deliver Callback to StepExecution of FlowNode="
+							+ this.flowNodeId);
+			throw new IllegalStateException(
+					"Failed to deliver Callback to StepExecution of FlowNode=" + this.flowNodeId);
 		}
 		return null;
 	}

@@ -18,6 +18,7 @@ package org.jenkinsci.plugins.repoproxy.steps;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -28,10 +29,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
 
 import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
 import org.jenkinsci.plugins.artifact.lifecycle.config.GlobalRepositoryIndex;
@@ -50,7 +47,6 @@ import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.jenkinsci.plugins.repoproxy.config.BomSourceCache;
 import org.jenkinsci.plugins.repoproxy.config.BomSourceProvider;
 import org.jenkinsci.plugins.repoproxy.netty.AgentNettyStopCallable;
-import org.jenkinsci.plugins.repoproxy.netty.SslContextFactory;
 import org.jenkinsci.plugins.workflow.actions.WorkspaceAction;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.steps.BodyExecution;
@@ -71,10 +67,6 @@ import hudson.Launcher;
 import hudson.model.Action;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import io.netty.handler.ssl.DelegatingSslContext;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
 import jenkins.agents.ControllerToAgentFileCallable;
 import jenkins.model.CauseOfInterruption;
 import net.runeduniverse.lib.utils.net.api.IpAddress;
@@ -287,6 +279,8 @@ public class RepoProxyStepExecution extends StepExecution {
 	}
 
 	public void receiveCallback(final String refKey, final Serializable data) {
+		// DEBUG: System.err.println("received ProxyCallbackData
+		// {refKey=" + refKey + ", data={ " + data + " }}");
 		final ProxyBootstrapper bootstrapper = this.activeProxies.get(refKey);
 		if (bootstrapper != null)
 			bootstrapper.receiveCallback(refKey, data);
@@ -317,7 +311,8 @@ public class RepoProxyStepExecution extends StepExecution {
 		// stop server
 		final IsolationContext isoContext = getIsolationContext();
 		if (isoContext != null) {
-			isoContext.actInContext(new AgentNettyStopCallable(this.activeNettyHandleCacheRefMap.keySet()));
+			isoContext.actInContext(
+					new AgentNettyStopCallable(new ArrayList<>(this.activeNettyHandleCacheRefMap.keySet())));
 		}
 		// results
 		final Run<?, ?> run = getContext().get(Run.class);
