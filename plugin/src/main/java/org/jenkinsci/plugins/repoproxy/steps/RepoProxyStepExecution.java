@@ -70,6 +70,7 @@ import hudson.model.TaskListener;
 import jenkins.agents.ControllerToAgentFileCallable;
 import jenkins.model.CauseOfInterruption;
 import jenkins.netty.AgentNettyStopCallable;
+import jenkins.runeduniverse.utils.net.IpNetworkUtils;
 import net.runeduniverse.lib.utils.net.api.IpAddress;
 
 public class RepoProxyStepExecution extends StepExecution {
@@ -151,6 +152,7 @@ public class RepoProxyStepExecution extends StepExecution {
 		final Map<String, String> proxyEnv = new LinkedHashMap<>();
 		final Set<IpAddress<?>> proxyIps = Arrays.asList(link.getHostAddressV4(), link.getHostAddressV6())
 				.stream()
+				.map(IpNetworkUtils::convert)
 				.filter(Objects::nonNull)
 				.collect(Collectors.toSet());
 		if (proxyIps.isEmpty()) {

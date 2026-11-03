@@ -19,15 +19,12 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 import org.jenkinsci.plugins.artifact.lifecycle.maven.config.Maven2Repository;
@@ -44,9 +41,6 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import hudson.model.Action;
 import hudson.model.TaskListener;
 import jenkins.agents.ControllerToAgentFileCallable;
-import jenkins.runeduniverse.utils.api.IpUtils;
-import net.runeduniverse.lib.utils.net.api.Ip4Address;
-import net.runeduniverse.lib.utils.net.api.Ip6Address;
 import net.runeduniverse.lib.utils.net.api.IpAddress;
 
 public class MvnProxyBootstrapper extends AProxyBootstrapper implements Action {
@@ -55,7 +49,7 @@ public class MvnProxyBootstrapper extends AProxyBootstrapper implements Action {
 	protected final Set<IpAddress<?>> ipSet;
 	protected final int port;
 	// tracking data
-	protected final Map<String, Set<String>> _purls = new ConcurrentHashMap<>();
+	protected final Map<String, Set<String>> purls = new LinkedHashMap<>();
 
 	public MvnProxyBootstrapper(final Set<IpAddress<?>> ipSet, final int port) {
 		this.instConfigs = new LinkedHashMap<>();
@@ -151,13 +145,17 @@ public class MvnProxyBootstrapper extends AProxyBootstrapper implements Action {
 	}
 
 	protected void trackArtifact(final String refKey, final String purl) {
-		this._purls.computeIfAbsent(refKey, k -> new ConcurrentSkipListSet<>())
-				.add(purl);
+		synchronized (this.purls) {
+			this.purls.computeIfAbsent(refKey, k -> new LinkedHashSet<>())
+					.add(purl);
+		}
 	}
 
 	protected void trackArtifacts(final String refKey, final Collection<String> purls) {
-		this._purls.computeIfAbsent(refKey, k -> new ConcurrentSkipListSet<>())
-				.addAll(purls);
+		synchronized (this.purls) {
+			this.purls.computeIfAbsent(refKey, k -> new LinkedHashSet<>())
+					.addAll(purls);
+		}
 	}
 
 	@Override
@@ -171,7 +169,9 @@ public class MvnProxyBootstrapper extends AProxyBootstrapper implements Action {
 	public Set<Action> results() {
 		final Set<Action> set = new LinkedHashSet<>();
 		final TrackedArtifactsAction tracker = new TrackedArtifactsAction();
-		this._purls.forEach(tracker::addArtifacts);
+		synchronized (this.purls) {
+			this.purls.forEach(tracker::addArtifacts);
+		}
 		set.add(tracker);
 		return set;
 	}
@@ -189,58 +189,5 @@ public class MvnProxyBootstrapper extends AProxyBootstrapper implements Action {
 	@Override
 	public String getUrlName() {
 		return null;
-	}
-
-	// XStream2 hook -> handles marshal on save()
-	private Object writeReplace() {
-		return Snapshot.marshal(this);
-	}
-
-	public static class Snapshot {
-
-		protected final Map<String, MvnProxyConfig> instConfigs;
-		protected final Set<String> ip4Set;
-		protected final Set<String> ip6Set;
-		protected final int port;
-		// tracking data
-		protected final Map<String, Set<String>> _purls = new LinkedHashMap<>();
-
-		protected Snapshot(final Map<String, MvnProxyConfig> instConfigs, final Set<String> ip4Set,
-				final Set<String> ip6Set, final int port) {
-			this.instConfigs = instConfigs;
-			this.ip4Set = ip4Set;
-			this.ip6Set = ip6Set;
-			this.port = port;
-		}
-
-		// XStream2 hook -> handles unmarshal on load()
-		private Object readResolve() {
-			final Set<IpAddress<?>> ips = new HashSet<>();
-			ips.add((IpAddress<?>) IpUtils.unmarshalCol(HashSet::new, this.ip4Set, IpUtils.IP4_PARSER));
-			ips.add((IpAddress<?>) IpUtils.unmarshalCol(HashSet::new, this.ip4Set, IpUtils.IP6_PARSER));
-
-			final MvnProxyBootstrapper inst = new MvnProxyBootstrapper(this.instConfigs, ips, this.port);
-			this._purls.forEach(inst::trackArtifacts);
-			return inst;
-		}
-
-		protected void marshalTrackedArtifacts(final String refKey, final Collection<String> purls) {
-			this._purls.computeIfAbsent(refKey, k -> new LinkedHashSet<>())
-					.addAll(purls);
-		}
-
-		public static Snapshot marshal(final MvnProxyBootstrapper instance) {
-			final Set<String> ip4Set = new HashSet<>();
-			final Set<String> ip6Set = new HashSet<>();
-			for (IpAddress<?> ip : instance.ipSet) {
-				if (ip instanceof Ip4Address)
-					ip4Set.add(ip.toCidrNotation());
-				else if (ip instanceof Ip6Address)
-					ip6Set.add(ip.toCidrNotation());
-			}
-			final Snapshot snapshot = new Snapshot(instance.instConfigs, ip4Set, ip6Set, instance.port);
-			instance._purls.forEach(snapshot::marshalTrackedArtifacts);
-			return snapshot;
-		}
 	}
 }
