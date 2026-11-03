@@ -13,29 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jenkinsci.plugins.repoproxy.netty;
+package jenkins.netty;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.UUID;
+import java.io.Serializable;
 
-import hudson.remoting.VirtualChannel;
-import jenkins.agents.ControllerToAgentFileCallable;
+import io.netty.handler.ssl.SslContext;
 
-public class AgentNettyStopCallable implements ControllerToAgentFileCallable<Void> {
+// NOTE: Due to interference by bouncycastle-api you must supply custom SslContext objects!
+public interface SslContextFactory extends Serializable {
 
-	private static final long serialVersionUID = 1L;
+	public SslContext createContextForClient() throws IOException;
 
-	protected final Collection<UUID> ids;
+	public SslContext createContextForServer() throws IOException;
 
-	public AgentNettyStopCallable(final Collection<UUID> ids) {
-		this.ids = ids;
-	}
-
-	@Override
-	public Void invoke(final File f, final VirtualChannel channel) throws IOException, InterruptedException {
-		AgentNettyRegistry.stopServers(this.ids);
-		return null;
-	}
 }

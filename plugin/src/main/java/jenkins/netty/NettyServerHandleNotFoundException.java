@@ -13,17 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jenkinsci.plugins.repoproxy.netty;
+package jenkins.netty;
 
 import java.io.IOException;
-import java.io.Serializable;
+import java.util.UUID;
 
-import io.netty.handler.ssl.SslContext;
+public class NettyServerHandleNotFoundException extends IOException {
 
-public interface SslContextFactory extends Serializable {
+	private static final long serialVersionUID = 1L;
 
-	public SslContext createContextForClient() throws IOException;
+	protected final UUID handleId;
 
-	public SslContext createContextForServer() throws IOException;
+	public NettyServerHandleNotFoundException(final UUID handleId) {
+		this(handleId, "Netty server handle not found: " + handleId);
+	}
 
+	public NettyServerHandleNotFoundException(final UUID handleId, final String message) {
+		super(message);
+		this.handleId = handleId;
+	}
+
+	public UUID getHandleId() {
+		return this.handleId;
+	}
 }

@@ -22,9 +22,9 @@ import java.util.UUID;
 import java.util.function.Predicate;
 
 import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
-import org.jenkinsci.plugins.repoproxy.netty.SslContextFactory;
 
 import io.netty.handler.ssl.SslContext;
+import jenkins.netty.SslContextFactory;
 
 public interface RemoteInitData extends Serializable {
 

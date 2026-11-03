@@ -20,30 +20,24 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
 import org.jenkinsci.plugins.artifact.lifecycle.maven.config.Maven2Repository;
-import org.jenkinsci.plugins.repoproxy.config.BomSourceCache;
-import org.jenkinsci.plugins.repoproxy.dto.BomCacheData;
 import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.jenkinsci.plugins.repoproxy.maven.config.MvnProxyConfig;
-import org.jenkinsci.plugins.repoproxy.netty.AgentNettyRegistry;
-import org.jenkinsci.plugins.repoproxy.netty.AgentNettyStartCallable;
-import org.jenkinsci.plugins.repoproxy.netty.NettyServerHandle;
+import org.jenkinsci.plugins.repoproxy.steps.ANettyProxyStartCallable;
 import org.jenkinsci.plugins.repoproxy.steps.ArtifactValidationInterruption;
-import org.jenkinsci.plugins.repoproxy.steps.ProxyCallbackCallable;
 import org.jenkinsci.plugins.repoproxy.steps.ProxyCallbackData;
-import org.jenkinsci.plugins.repoproxy.steps.StopStepCallable;
-
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import io.netty.channel.group.ChannelGroup;
+import jenkins.netty.AgentNettyRegistry;
+import jenkins.netty.NettyServerHandle;
 import net.runeduniverse.lib.repo.maven.data.DefaultFileTypeIndex;
 import net.runeduniverse.lib.repo.maven.error.ArtifactException;
 import net.runeduniverse.lib.repo.maven.proxy.DefaultCache;
@@ -51,29 +45,21 @@ import net.runeduniverse.lib.repo.maven.proxy.DefaultRepositoryProxyInstance;
 import net.runeduniverse.lib.repo.maven.proxy.ProxyServer;
 import net.runeduniverse.lib.repo.maven.server.http.HttpRepoServerInitializer;
 
-public class MvnNettyStartCallable extends AgentNettyStartCallable {
+public class MvnProxyStartCallable extends ANettyProxyStartCallable {
 
 	private static final long serialVersionUID = 1L;
 
 	protected final Map<String, MvnProxyConfig> instanceConfigs;
-	protected final RemoteInitData data;
-	protected final Set<InetAddress> addressSet;
-	protected final int port;
 
-	public MvnNettyStartCallable(final String flowNodeId, final Map<String, MvnProxyConfig> instanceConfigs,
+	public MvnProxyStartCallable(final String flowNodeId, final Map<String, MvnProxyConfig> instanceConfigs,
 			final RemoteInitData data, final Set<InetAddress> addressSet, final int port) {
-		super(flowNodeId);
+		super(flowNodeId, data, addressSet, port);
 		this.instanceConfigs = instanceConfigs;
-		this.data = data;
-		this.addressSet = addressSet;
-		this.port = port;
 	}
 
 	@Override
 	protected void attachServerChannel(final UUID handleId, final File cacheFolder, final ChannelGroup channelGroup)
 			throws IOException, InterruptedException {
-		preloadRemoteCaches();
-
 		final ProxyServer server = new ProxyServer(new DefaultFileTypeIndex(), HttpRepoServerInitializer::new);
 		final Path cachePath = cacheFolder.toPath();
 
@@ -103,21 +89,8 @@ public class MvnNettyStartCallable extends AgentNettyStartCallable {
 				});
 	}
 
-	protected void preloadRemoteCaches() throws IOException, InterruptedException {
-		// ensure the errors are thrown here and not during netty init!
-		this.data.initContextForClient();
-		this.data.initContextForServer();
-	}
-
-	protected void sendCallback(final NettyServerHandle handle, final String refId, final Serializable data) {
-		// DEBUG: System.err.println("sent ProxyCallbackData
-		// {refKey=" + refId + ", data={ " + data + " }}");
-		handle.sendCallback(new ProxyCallbackCallable(this.flowNodeId, refId, data));
-	}
-
 	protected void killPipeline(final NettyServerHandle handle, final ArtifactException ex) {
-		handle.sendCallback(new StopStepCallable(this.flowNodeId,
-				new ArtifactValidationInterruption(ex.getMessage()).setPURL(ex.getPURL())));
+		killPipeline(handle, new ArtifactValidationInterruption(ex.getMessage()).setPURL(ex.getPURL()));
 	}
 
 	protected void configure(final ProxyServer server, final Path cachePath, final Consumer<Serializable> callback)
@@ -142,20 +115,6 @@ public class MvnNettyStartCallable extends AgentNettyStartCallable {
 
 			server.addInstance(instance);
 		}
-	}
-
-	protected Map<UUID, Path> resolveBomCacheMap() throws IOException, InterruptedException {
-		final Map<UUID, Path> map = new LinkedHashMap<>();
-		if (this.data instanceof BomCacheData data)
-			for (Entry<UUID, BomSourceCache> entry : data.getBomCache()
-					.entrySet()) {
-				final UUID uuid = entry.getKey();
-				final BomSourceCache cache = entry.getValue();
-				if (uuid == null || cache == null)
-					continue;
-				map.put(uuid, cache.toPath());
-			}
-		return map;
 	}
 
 	protected Map<UUID, Maven2Repository> resolveRepoMap() throws IOException, InterruptedException {

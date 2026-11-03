@@ -28,11 +28,11 @@ import java.util.stream.Stream;
 import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
 import org.jenkinsci.plugins.artifact.lifecycle.config.GlobalRepositoryIndex;
 import org.jenkinsci.plugins.repoproxy.config.BomSourceCache;
-import org.jenkinsci.plugins.repoproxy.netty.SslContextFactory;
 
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 
 import io.netty.handler.ssl.SslContext;
+import jenkins.netty.SslContextFactory;
 
 public class DefaultRemoteInitData implements RemoteInitData, CredentialsData, BomCacheData {
 

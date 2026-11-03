@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jenkinsci.plugins.repoproxy.netty;
+package jenkins.netty;
 
-import java.util.ArrayList;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Collection;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +30,8 @@ import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.ChannelGroupFuture;
 
 public class AgentNettyRegistry {
+
+	private static final Logger LOGGER = System.getLogger(AgentNettyRegistry.class.getName());
 
 	protected static final Map<UUID, NettyServerHandle> SERVERS = new ConcurrentHashMap<>();
 
@@ -48,19 +51,43 @@ public class AgentNettyRegistry {
 		return SERVERS.get(uuid);
 	}
 
-	public static void stopServers(final Collection<UUID> uuids) throws InterruptedException {
-		final List<ChannelGroupFuture> futures = new ArrayList<>();
+	public static boolean stopServers(final Collection<UUID> uuids) throws InterruptedException {
+		return stopServers(uuids, 60, TimeUnit.SECONDS);
+	}
+
+	public static boolean stopServers(final Collection<UUID> uuids, final long timeout, final TimeUnit unit)
+			throws InterruptedException {
+		final Map<UUID, ChannelGroupFuture> futures = new LinkedHashMap<>();
 		// signal all servers to shutdown
 		for (UUID uuid : uuids) {
 			final NettyServerHandle handle = SERVERS.remove(uuid);
 			if (handle == null)
 				continue;
-			futures.add(handle.getChannelGroup()
+			futures.put(uuid, handle.getChannelGroup()
 					.close());
 		}
 		// wait for them to do so
-		for (ChannelGroupFuture future : futures)
-			future.await(60, TimeUnit.MINUTES);
+		final long deadline = System.nanoTime() + unit.toNanos(timeout);
+		for (Map.Entry<UUID, ChannelGroupFuture> entry : futures.entrySet()) {
+			final ChannelGroupFuture future = entry.getValue();
+
+			final long remaining = deadline - System.nanoTime();
+			if (future.await(remaining, TimeUnit.NANOSECONDS) == false) {
+				LOGGER.log(Level.WARNING,
+						"NettyServerHandle(" + entry.getKey() + ") | Timed out waiting for channel-group close");
+				continue;
+			}
+		}
+		boolean allOk = true;
+		for (Map.Entry<UUID, ChannelGroupFuture> entry : futures.entrySet()) {
+			final ChannelGroupFuture future = entry.getValue();
+			if (future.isSuccess() == false) {
+				allOk = false;
+				LOGGER.log(Level.ERROR,
+						"NettyServerHandle(" + entry.getKey() + ") | Channel-group close failed: " + future.cause());
+			}
+		}
+		return allOk;
 	}
 
 	public static Stream<NettyServerHandle> stream() {

@@ -21,12 +21,11 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 
-import org.jenkinsci.plugins.repoproxy.netty.SslContextFactory;
-
 import io.netty.handler.ssl.DelegatingSslContext;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
+import jenkins.netty.SslContextFactory;
 
 public class SunSslContextFactory implements SslContextFactory {
 

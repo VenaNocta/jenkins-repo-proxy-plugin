@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jenkinsci.plugins.repoproxy.netty;
+package jenkins.netty;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,6 +40,11 @@ public abstract class AgentNettyStartCallable implements ControllerToAgentFileCa
 		return new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 	}
 
+	protected void preloadRemoteCaches(final UUID handleId, final File cacheFolder)
+			throws IOException, InterruptedException {
+		// ensure the errors are thrown here and not during netty init!
+	}
+
 	protected abstract void attachServerChannel(UUID handleId, File cacheFolder, ChannelGroup channelGroup)
 			throws IOException, InterruptedException;
 
@@ -51,7 +56,9 @@ public abstract class AgentNettyStartCallable implements ControllerToAgentFileCa
 		if (group == null)
 			return null;
 		final NettyServerHandle handle = AgentNettyRegistry.register(callbackChannel, this.flowNodeId, group);
-		attachServerChannel(handle.getId(), cacheFolder, group);
+		final UUID handleId = handle.getId();
+		preloadRemoteCaches(handleId, cacheFolder);
+		attachServerChannel(handleId, cacheFolder, group);
 		return handle.getId();
 	}
 }

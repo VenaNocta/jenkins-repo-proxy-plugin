@@ -18,7 +18,8 @@ package org.jenkinsci.plugins.repoproxy.steps;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -46,7 +47,6 @@ import org.jenkinsci.plugins.repoproxy.dto.DefaultRemoteInitData;
 import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.jenkinsci.plugins.repoproxy.config.BomSourceCache;
 import org.jenkinsci.plugins.repoproxy.config.BomSourceProvider;
-import org.jenkinsci.plugins.repoproxy.netty.AgentNettyStopCallable;
 import org.jenkinsci.plugins.workflow.actions.WorkspaceAction;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.steps.BodyExecution;
@@ -69,11 +69,13 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import jenkins.agents.ControllerToAgentFileCallable;
 import jenkins.model.CauseOfInterruption;
+import jenkins.netty.AgentNettyStopCallable;
 import net.runeduniverse.lib.utils.net.api.IpAddress;
 
 public class RepoProxyStepExecution extends StepExecution {
 
 	private static final long serialVersionUID = 1L;
+	private static final Logger LOGGER = System.getLogger(RepoProxyStepExecution.class.getName());
 
 	protected final transient Map<String, ProxyBootstrapper> activeProxies = new LinkedHashMap<>();
 	protected final transient Map<UUID, UUID> activeNettyHandleCacheRefMap = new LinkedHashMap<>();
@@ -279,8 +281,7 @@ public class RepoProxyStepExecution extends StepExecution {
 	}
 
 	public void receiveCallback(final String refKey, final Serializable data) {
-		// DEBUG: System.err.println("received ProxyCallbackData
-		// {refKey=" + refKey + ", data={ " + data + " }}");
+		LOGGER.log(Level.DEBUG, "received ProxyCallbackData {refKey=" + refKey + ", data={ " + data + " }}");
 		final ProxyBootstrapper bootstrapper = this.activeProxies.get(refKey);
 		if (bootstrapper != null)
 			bootstrapper.receiveCallback(refKey, data);
@@ -293,7 +294,7 @@ public class RepoProxyStepExecution extends StepExecution {
 			for (CauseOfInterruption exCause : flowEx.getCauses()) {
 				if (exCause instanceof ArtifactValidationInterruption error) {
 					final String purl = error.getPURL();
-					String msg = "[ RepoProxy ] ERROR: Invalid Artifact : " + error.getMessage();
+					String msg = "\n[ RepoProxy ] ERROR: Invalid Artifact : " + error.getMessage();
 					if (purl != null)
 						msg = msg + "\n[ RepoProxy ] ERROR:   purl: " + purl;
 					listener.getLogger()
@@ -311,8 +312,7 @@ public class RepoProxyStepExecution extends StepExecution {
 		// stop server
 		final IsolationContext isoContext = getIsolationContext();
 		if (isoContext != null) {
-			isoContext.actInContext(
-					new AgentNettyStopCallable(new ArrayList<>(this.activeNettyHandleCacheRefMap.keySet())));
+			isoContext.actInContext(new AgentNettyStopCallable(this.activeNettyHandleCacheRefMap.keySet()));
 		}
 		// results
 		final Run<?, ?> run = getContext().get(Run.class);
@@ -335,7 +335,7 @@ public class RepoProxyStepExecution extends StepExecution {
 	public void onResume() {
 		if (this.bodyExec.isDone())
 			return;
-		// TODO in the future try to reconnect the Channels to the remote Computer!
+		// TODO in the future try to reconnect the Proxies on the remote Computer!
 		final StepContext context = getContext();
 		context.onFailure(new SynchronousResumeNotSupportedException(context));
 	}

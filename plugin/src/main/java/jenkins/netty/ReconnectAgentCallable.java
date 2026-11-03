@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jenkinsci.plugins.repoproxy.netty;
+package jenkins.netty;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.UUID;
 
 import hudson.remoting.Channel;
@@ -26,6 +28,7 @@ import jenkins.agents.ControllerToAgentFileCallable;
 public final class ReconnectAgentCallable implements ControllerToAgentFileCallable<Void> {
 
 	private static final long serialVersionUID = 1L;
+	private static final Logger LOGGER = System.getLogger(ReconnectAgentCallable.class.getName());
 
 	private final UUID handleId;
 
@@ -42,9 +45,9 @@ public final class ReconnectAgentCallable implements ControllerToAgentFileCallab
 
 		final NettyServerHandle handle = AgentNettyRegistry.get(this.handleId);
 		if (handle == null)
-			throw new IOException("Netty server handle not found: " + this.handleId);
+			throw new NettyServerHandleNotFoundException(this.handleId);
 
-		System.err.println("ReconnectAgentCallable: updating channel for handle (ID: " + this.handleId + ") to "
+		LOGGER.log(Level.INFO, "ReconnectAgentCallable: updating channel for handle (ID: " + this.handleId + ") to "
 				+ callbackChannel);
 		handle.updateJenkinsChannel(callbackChannel);
 		return null;

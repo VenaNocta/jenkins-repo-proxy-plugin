@@ -43,9 +43,8 @@ public class ArtifactValidationInterruption extends CauseOfInterruption {
 	public String getShortDescription() {
 		final StringBuilder msg = new StringBuilder(this.message);
 		if (this.packageUrl != null)
-			msg.append("\n  PURL: " + this.packageUrl);
+			msg.append(" » PURL: " + this.packageUrl);
 		return msg.toString();
-
 	}
 
 	public ArtifactValidationInterruption setPURL(final String purl) {

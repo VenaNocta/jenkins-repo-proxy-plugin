@@ -132,7 +132,7 @@ public class MvnProxyBootstrapper extends AProxyBootstrapper implements Action {
 				.collect(Collectors.toSet());
 
 		final FlowNode node = context.get(FlowNode.class);
-		final MvnNettyStartCallable callable = new MvnNettyStartCallable(//
+		final MvnProxyStartCallable callable = new MvnProxyStartCallable(//
 				node.getId(), this.instConfigs, data, addressSet, this.port);
 
 		updateEnv(this.instConfigs.keySet(), this.ipSet, this.port, proxyEnv, "MVN");
