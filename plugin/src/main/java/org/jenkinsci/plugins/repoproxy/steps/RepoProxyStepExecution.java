@@ -42,7 +42,8 @@ import org.jenkinsci.plugins.repoproxy.ProxyProvider;
 import org.jenkinsci.plugins.repoproxy.config.ProxyConfig;
 import org.jenkinsci.plugins.repoproxy.config.ProxyConfigDescriptor;
 import org.jenkinsci.plugins.repoproxy.config.RepoProxyConfiguration;
-import org.jenkinsci.plugins.repoproxy.config.SunSslContextFactory;
+import org.jenkinsci.plugins.repoproxy.config.RepoProxyNodeProperty;
+import org.jenkinsci.plugins.repoproxy.config.ssl.SunSslContextFactory;
 import org.jenkinsci.plugins.repoproxy.dto.DefaultRemoteInitData;
 import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.jenkinsci.plugins.repoproxy.config.BomSourceCache;
@@ -65,6 +66,7 @@ import hudson.AbortException;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.Action;
+import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import jenkins.agents.ControllerToAgentFileCallable;
@@ -235,8 +237,7 @@ public class RepoProxyStepExecution extends StepExecution {
 					continue;
 				repoMap.put(uuid, repo);
 			}
-			// TODO move ssl factory to config!
-			initData.setSslContextFactory(new SunSslContextFactory());
+			initData.setSslContextFactory(RepoProxyNodeProperty.getSslContextFactory(getContext().get(Node.class)));
 			// -- CredentialsData
 			final Map<String, IdCredentials> credMap = initData.getCredentialMap();
 			for (String credId : credIds) {

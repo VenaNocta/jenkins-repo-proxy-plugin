@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jenkinsci.plugins.repoproxy.config;
+package org.jenkinsci.plugins.repoproxy.config.ssl;
 
 import java.io.IOException;
 
@@ -21,22 +21,25 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import hudson.Extension;
+import hudson.model.Descriptor;
 import io.netty.handler.ssl.DelegatingSslContext;
 import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
-import jenkins.netty.SslContextFactory;
 
-public class SunSslContextFactory implements SslContextFactory {
+public class PatchedSunSslContextFactory extends SunSslContextFactory {
 
 	private static final long serialVersionUID = 1L;
+
+	@DataBoundConstructor
+	public PatchedSunSslContextFactory() {
+	}
 
 	@Override
 	public SslContext createContextForClient() throws IOException {
 		try {
-			final SslContext base = SslContextBuilder.forClient()
-					.sslProvider(SslProvider.JDK)
-					.build();
+			final SslContext base = super.createContextForClient();
 			return new DelegatingSslContext(base) {
 				@Override
 				protected void initEngine(final SSLEngine engine) {
@@ -51,8 +54,12 @@ public class SunSslContextFactory implements SslContextFactory {
 		}
 	}
 
-	@Override
-	public SslContext createContextForServer() throws IOException {
-		return null;
+	@Extension(ordinal = 1001)
+	public static class DescriptorImpl extends Descriptor<SslContextFactory> {
+
+		@Override
+		public String getDisplayName() {
+			return "Sun SSL-Context (with regression patch)";
+		}
 	}
 }
