@@ -60,11 +60,12 @@ public class MvnProxyStartCallable extends ANettyProxyStartCallable {
 	@Override
 	protected void attachServerChannel(final UUID handleId, final File cacheFolder, final ChannelGroup channelGroup)
 			throws IOException, InterruptedException {
-		final ProxyServer server = new ProxyServer(new DefaultFileTypeIndex(), HttpRepoServerInitializer::new);
+		final NettyServerHandle handle = AgentNettyRegistry.get(handleId);
+		final ProxyServer server = new ProxyServer(handle.getMainEventLoopGroup(), handle.getWorkerEventLoopGroup(),
+				new DefaultFileTypeIndex(), HttpRepoServerInitializer::new);
 		final Path cachePath = cacheFolder.toPath();
 
 		configure(server, cachePath, data -> {
-			final NettyServerHandle handle = AgentNettyRegistry.get(handleId);
 			String refId = null;
 
 			if (data instanceof ProxyCallbackData pData) {
@@ -83,10 +84,6 @@ public class MvnProxyStartCallable extends ANettyProxyStartCallable {
 					.sync()
 					.channel());
 		}
-		channelGroup.newCloseFuture()
-				.addListener(v -> {
-					server.shutdownGracefully();
-				});
 	}
 
 	protected void killPipeline(final NettyServerHandle handle, final ArtifactException ex) {

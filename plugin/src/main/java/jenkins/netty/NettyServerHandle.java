@@ -16,10 +16,14 @@
 package jenkins.netty;
 
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.jenkinsci.remoting.ChannelStateException;
@@ -27,27 +31,45 @@ import org.jenkinsci.remoting.ChannelStateException;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import hudson.remoting.VirtualChannel;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.ChannelGroupFuture;
+import io.netty.channel.nio.NioIoHandler;
 
 public class NettyServerHandle {
 
+	private static final Logger LOGGER = System.getLogger(NettyServerHandle.class.getName());
+
 	private final AtomicReference<VirtualChannel> jenkinsChannel = new AtomicReference<>();
 	private final Queue<Callable<?, ?>> pendingCallbacks = new ConcurrentLinkedQueue<>();
+	private final AtomicBoolean channelGroupState = new AtomicBoolean(true);
 
 	protected final UUID id;
 	protected final String flowNodeId;
+	protected final EventLoopGroup mainEventLoopGroup;
+	protected final EventLoopGroup workerEventLoopGroup;
 	protected final ChannelGroup channelGroup;
 
 	protected NettyServerHandle(final UUID id, final VirtualChannel ch, final String flowNodeId,
 			final ChannelGroup group) {
 		this.id = id;
 		this.flowNodeId = flowNodeId;
+		this.mainEventLoopGroup = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
+		this.workerEventLoopGroup = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
 		this.channelGroup = group;
 		this.jenkinsChannel.set(ch);
+		// hooks
+		this.channelGroup.newCloseFuture()
+				.addListener(this::markChannelAsClosed);
 	}
 
 	public UUID getId() {
 		return this.id;
+	}
+
+	public boolean isChannelGroupActive() {
+		return this.channelGroupState.get();
 	}
 
 	public VirtualChannel getJenkinsChannel() {
@@ -56,6 +78,14 @@ public class NettyServerHandle {
 
 	public String getFlowNodeId() {
 		return this.flowNodeId;
+	}
+
+	public EventLoopGroup getMainEventLoopGroup() {
+		return this.mainEventLoopGroup;
+	}
+
+	public EventLoopGroup getWorkerEventLoopGroup() {
+		return this.workerEventLoopGroup;
 	}
 
 	public ChannelGroup getChannelGroup() {
@@ -73,7 +103,7 @@ public class NettyServerHandle {
 
 		final VirtualChannel channel = this.jenkinsChannel.get();
 		if (isUnavailable(channel)) {
-			System.err.println("sendCallback | VirtualChannel (" + channel + ") unavailable!");
+			LOGGER.log(Level.INFO, "sendCallback | VirtualChannel (" + channel + ") unavailable!");
 			this.pendingCallbacks.add(callback);
 			return;
 		}
@@ -84,13 +114,13 @@ public class NettyServerHandle {
 			this.pendingCallbacks.add(callback);
 			this.jenkinsChannel.compareAndSet(channel, null);
 		} catch (IOException e) {
-			System.err.println("Skipping Callback Delivery! : " + e.getMessage());
-			e.printStackTrace(System.err);
+			LOGGER.log(Level.ERROR, "Skipping Callback Delivery! : " + e.getMessage());
+			LOGGER.log(Level.ERROR, e.getStackTrace());
 		}
 	}
 
 	private void flushCallbacks() {
-		final VirtualChannel channel = jenkinsChannel.get();
+		final VirtualChannel channel = this.jenkinsChannel.get();
 		if (isUnavailable(channel))
 			return;
 
@@ -103,11 +133,19 @@ public class NettyServerHandle {
 				this.jenkinsChannel.compareAndSet(channel, null);
 				break;
 			} catch (IOException e) {
-				System.err.println("Skipping Callback Delivery! : " + e.getMessage());
-				e.printStackTrace(System.err);
+				LOGGER.log(Level.ERROR, "Skipping Callback Delivery! : " + e.getMessage());
+				LOGGER.log(Level.ERROR, e.getStackTrace());
 				break;
 			}
 		}
+	}
+
+	public ChannelGroupFuture shutdownChannelGroup() {
+		return this.channelGroup.close();
+	}
+
+	protected void markChannelAsClosed(final Future<?> future) {
+		this.channelGroupState.set(false);
 	}
 
 	private static boolean isUnavailable(final VirtualChannel channel) {
