@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
 import org.jenkinsci.plugins.artifact.lifecycle.config.ArtifactRepository;
 import org.jenkinsci.plugins.artifact.lifecycle.config.GlobalRepositoryIndex;
 import org.jenkinsci.plugins.isolationctx.IsolationContext;
-import org.jenkinsci.plugins.isolationctx.WorkflowUtils;
-import org.jenkinsci.plugins.isolationctx.IsolationContext.NetLink;
+import org.jenkinsci.plugins.isolationctx.utils.WorkflowUtil;
+import org.jenkinsci.plugins.isolationctx.dto.net.NetInterface;
 import org.jenkinsci.plugins.isolationctx.dto.IsolationContextAction;
 import org.jenkinsci.plugins.repoproxy.ProxyBootstrapper;
 import org.jenkinsci.plugins.repoproxy.ProxyProvider;
@@ -43,7 +43,6 @@ import org.jenkinsci.plugins.repoproxy.config.ProxyConfig;
 import org.jenkinsci.plugins.repoproxy.config.ProxyConfigDescriptor;
 import org.jenkinsci.plugins.repoproxy.config.RepoProxyConfiguration;
 import org.jenkinsci.plugins.repoproxy.config.RepoProxyNodeProperty;
-import org.jenkinsci.plugins.repoproxy.config.ssl.SunSslContextFactory;
 import org.jenkinsci.plugins.repoproxy.dto.DefaultRemoteInitData;
 import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
 import org.jenkinsci.plugins.repoproxy.config.BomSourceCache;
@@ -87,7 +86,7 @@ public class RepoProxyStepExecution extends StepExecution {
 	protected final FilePath cacheFolder;
 	protected final FilePath cacheBomFolder;
 
-	protected transient NetLink link;
+	protected transient NetInterface iface;
 
 	protected transient WorkspaceAction _ws = null;
 
@@ -105,7 +104,7 @@ public class RepoProxyStepExecution extends StepExecution {
 		if (this._ws != null)
 			return this._ws;
 		final StepContext context = getContext();
-		return this._ws = WorkflowUtils.findContextAction( //
+		return this._ws = WorkflowUtil.findContextAction( //
 				WorkspaceAction.class, context.get(Run.class), context.get(FlowNode.class));
 	}
 
@@ -115,8 +114,8 @@ public class RepoProxyStepExecution extends StepExecution {
 
 	protected IsolationContext getIsolationContext() throws IOException, InterruptedException {
 		final StepContext context = getContext();
-		final IsolationContextAction action = WorkflowUtils.findContextAction( //
-				IsolationContextAction.class, context.get(Run.class), context.get(FlowNode.class));
+		final IsolationContextAction action = IsolationContextAction.findContextAction( //
+				context.get(Run.class), context.get(FlowNode.class));
 		return action == null ? null : action.getContext();
 	}
 
@@ -147,12 +146,12 @@ public class RepoProxyStepExecution extends StepExecution {
 		if (isoContext == null)
 			throw new RuntimeException("IsolationContext unavailable!");
 
-		final NetLink link = this.link = isoContext.connectNetLink();
-		if (link == null)
+		final NetInterface iface = this.iface = isoContext.connectNetInterface();
+		if (iface == null)
 			throw new AbortException("Failed to connect the Proxy to the IsolationContext!");
 
 		final Map<String, String> proxyEnv = new LinkedHashMap<>();
-		final Set<IpAddress<?>> proxyIps = Arrays.asList(link.getHostAddressV4(), link.getHostAddressV6())
+		final Set<IpAddress<?>> proxyIps = Arrays.asList(iface.getHostAddressV4(), iface.getHostAddressV6())
 				.stream()
 				.map(IpNetworkUtils::convert)
 				.filter(Objects::nonNull)
@@ -180,7 +179,7 @@ public class RepoProxyStepExecution extends StepExecution {
 					configs.put(refKey, config);
 			}
 
-			spawnProxies(link, proxyEnv, configs, proxyIps);
+			spawnProxies(iface, proxyEnv, configs, proxyIps);
 		}
 
 		this.bodyExec = context.newBodyInvoker()
@@ -191,7 +190,7 @@ public class RepoProxyStepExecution extends StepExecution {
 		return false;
 	}
 
-	protected void spawnProxies(final NetLink link, final Map<String, String> proxyEnv,
+	protected void spawnProxies(final NetInterface iface, final Map<String, String> proxyEnv,
 			final Map<String, ProxyConfig> configs, final Set<IpAddress<?>> ips)
 			throws IOException, InterruptedException {
 		final StepContext context = getContext();
@@ -270,7 +269,7 @@ public class RepoProxyStepExecution extends StepExecution {
 			dir.mkdirs();
 			// actually stat server
 			final ControllerToAgentFileCallable<UUID> callable = //
-					bootstrap.serverStartCallable(link, context, proxyEnv, remoteInitData, listener);
+					bootstrap.serverStartCallable(iface, context, proxyEnv, remoteInitData, listener);
 			this.activeNettyHandleCacheRefMap.put(dir.act(callable), cacheRef);
 		}
 	}

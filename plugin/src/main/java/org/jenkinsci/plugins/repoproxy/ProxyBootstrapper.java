@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.jenkinsci.plugins.isolationctx.IsolationContext.NetLink;
+import org.jenkinsci.plugins.isolationctx.dto.net.NetInterface;
 import org.jenkinsci.plugins.repoproxy.dto.BomCacheData;
 import org.jenkinsci.plugins.repoproxy.dto.CredentialsData;
 import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
@@ -45,7 +45,7 @@ public interface ProxyBootstrapper {
 		return Set.of();
 	}
 
-	public ControllerToAgentFileCallable<UUID> serverStartCallable(NetLink link, //
+	public ControllerToAgentFileCallable<UUID> serverStartCallable(NetInterface netIface, //
 			StepContext context, Map<String, String> proxyEnv, RemoteInitData remoteInitData, //
 			TaskListener listener) throws IOException, InterruptedException;
 

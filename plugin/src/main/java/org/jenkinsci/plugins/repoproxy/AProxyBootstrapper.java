@@ -15,12 +15,20 @@
  */
 package org.jenkinsci.plugins.repoproxy;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
+
+import org.jenkinsci.plugins.isolationctx.dto.net.NetInterface;
+import org.jenkinsci.plugins.isolationctx.dto.TrafficMap;
+import org.jenkinsci.plugins.isolationctx.dto.TrafficMap.Protocol;
+import org.jenkinsci.plugins.isolationctx.dto.net.LnxNetLink;
+
+import hudson.model.TaskListener;
 import net.runeduniverse.lib.utils.net.api.IpAddress;
 
 public abstract class AProxyBootstrapper implements ProxyBootstrapper {
@@ -67,6 +75,22 @@ public abstract class AProxyBootstrapper implements ProxyBootstrapper {
 				}
 			}
 			proxyEnv.put(defaultEnvId, proxyEnv.get(envId0));
+		}
+	}
+
+	public static void firewallOpenPortsToProxy(final NetInterface iface, final Set<IpAddress<?>> proxyIpSet,
+			final Protocol protocol, final Set<Integer> ports, final TaskListener listener)
+			throws IOException, InterruptedException {
+		// -- LnxNetLink
+		if (iface instanceof LnxNetLink link) {
+			for (IpAddress<?> ip : proxyIpSet) {
+				// the TrafficMap only allows ip pairs with the same family
+				// -> all others are ignored
+				iface.firewall()
+						.firewallInputOpen(new TrafficMap().add(ip, link.getContextAddressV4(), protocol, ports)
+								.add(ip, link.getContextAddressV6(), protocol, ports), listener);
+			}
+			return;
 		}
 	}
 }

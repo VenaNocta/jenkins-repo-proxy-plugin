@@ -28,8 +28,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.jenkinsci.plugins.artifact.lifecycle.maven.config.Maven2Repository;
-import org.jenkinsci.plugins.isolationctx.IsolationContext.NetLink;
-import org.jenkinsci.plugins.isolationctx.dto.TrafficMap;
+import org.jenkinsci.plugins.isolationctx.dto.net.NetInterface;
 import org.jenkinsci.plugins.isolationctx.dto.TrafficMap.Protocol;
 import org.jenkinsci.plugins.repoproxy.AProxyBootstrapper;
 import org.jenkinsci.plugins.repoproxy.dto.RemoteInitData;
@@ -116,7 +115,7 @@ public class MvnProxyBootstrapper extends AProxyBootstrapper implements Action {
 	}
 
 	@Override
-	public ControllerToAgentFileCallable<UUID> serverStartCallable(final NetLink link, //
+	public ControllerToAgentFileCallable<UUID> serverStartCallable(final NetInterface iface, //
 			final StepContext context, final Map<String, String> proxyEnv, final RemoteInitData data,
 			final TaskListener listener) throws IOException, InterruptedException {
 
@@ -131,15 +130,7 @@ public class MvnProxyBootstrapper extends AProxyBootstrapper implements Action {
 
 		updateEnv(this.instConfigs.keySet(), this.ipSet, this.port, proxyEnv, "MVN");
 
-		for (IpAddress<?> ip : this.ipSet) {
-			// the TrafficMap only allows ip pairs with the same family
-			// -> all others are ignored
-			link.firewall()
-					.firewallInputOpen(
-							new TrafficMap().add(ip, link.getContextAddressV4(), Protocol.TCP, Set.of(this.port))
-									.add(ip, link.getContextAddressV6(), Protocol.TCP, Set.of(this.port)),
-							listener);
-		}
+		firewallOpenPortsToProxy(iface, this.ipSet, Protocol.TCP, Set.of(this.port), listener);
 
 		return callable;
 	}
